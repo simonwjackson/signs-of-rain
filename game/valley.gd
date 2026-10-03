@@ -5,6 +5,7 @@ const Terrain = preload("res://game/terrain.gd")
 const Villager = preload("res://game/villager.gd")
 const GodCamera = preload("res://game/god_camera.gd")
 const S = preload("res://ui/style.gd")
+const FAST_PIXEL_BUDGET := 1400000.0
 var state: Dictionary = {}
 var selected := -1
 var mode := "observe"
@@ -90,6 +91,17 @@ func _ready() -> void:
 
 func _resize() -> void:
 	viewport.size = Vector2i(maxi(2, roundi(size.x)), maxi(2, roundi(size.y)))
+	_apply_render_scale()
+
+
+## Faster graphics caps 3D work at about 1.4 megapixels, so a large HiDPI
+## window does not quadruple the cost of an integrated GPU's frame.
+func _apply_render_scale() -> void:
+	if graphics != "fast":
+		viewport.scaling_3d_scale = 1.0
+		return
+	var pixels := maxf(1.0, float(viewport.size.x) * float(viewport.size.y))
+	viewport.scaling_3d_scale = clampf(sqrt(FAST_PIXEL_BUDGET / pixels), .45, .67)
 
 
 func _lighting() -> void:
@@ -153,7 +165,7 @@ func set_graphics(preset: String) -> void:
 	viewport.scaling_3d_mode = (
 		Viewport.SCALING_3D_MODE_FSR if fast else Viewport.SCALING_3D_MODE_BILINEAR
 	)
-	viewport.scaling_3d_scale = .67 if fast else 1.0
+	_apply_render_scale()
 	environment.ssil_enabled = not fast
 	environment.volumetric_fog_enabled = not fast
 	sunlight.directional_shadow_mode = (

@@ -43,6 +43,21 @@ func run() -> void:
 		"fast preset uses two shadow cascades"
 	)
 	check(game.simulation.digest() == before, "changing graphics never changes simulation state")
+	view.size = Vector2(1920, 1200)
+	await process_frame
+	check(
+		is_equal_approx(view.viewport.scaling_3d_scale, .67),
+		"fast keeps 67% scale on an ordinary window"
+	)
+	view.size = Vector2(2880, 1800)
+	await process_frame
+	var rendered: float = (
+		view.viewport.scaling_3d_scale * view.viewport.scaling_3d_scale * 2880.0 * 1800.0
+	)
+	check(
+		rendered < 1450000.0 and view.viewport.scaling_3d_scale >= .45,
+		"fast caps 3D pixels on a large HiDPI window without dropping below 45%"
+	)
 	view.set_graphics("high")
 	check(view.viewport.msaa_3d == Viewport.MSAA_4X, "high preset restores 4x MSAA")
 	check(view.viewport.scaling_3d_scale == 1.0, "high preset renders at full resolution")
