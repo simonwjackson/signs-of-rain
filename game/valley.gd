@@ -35,6 +35,7 @@ var clock := 0.0
 var effects: Array[Dictionary] = []
 var environment := Environment.new()
 var sunlight := DirectionalLight3D.new()
+var graphics := "high"
 
 
 func _ready() -> void:
@@ -141,6 +142,26 @@ func _lighting() -> void:
 	sunlight.shadow_bias = .1
 	sunlight.shadow_normal_bias = 1.5
 	world.add_child(sunlight)
+
+
+## Rendering cost only. "fast" keeps shadows, fog, and SSAO for depth, and drops
+## the costly passes integrated GPUs struggle with at high resolution.
+func set_graphics(preset: String) -> void:
+	graphics = "fast" if preset == "fast" else "high"
+	var fast := graphics == "fast"
+	viewport.msaa_3d = Viewport.MSAA_DISABLED if fast else Viewport.MSAA_4X
+	viewport.scaling_3d_mode = (
+		Viewport.SCALING_3D_MODE_FSR if fast else Viewport.SCALING_3D_MODE_BILINEAR
+	)
+	viewport.scaling_3d_scale = .67 if fast else 1.0
+	environment.ssil_enabled = not fast
+	environment.volumetric_fog_enabled = not fast
+	sunlight.directional_shadow_mode = (
+		DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+		if fast
+		else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	)
+	sunlight.directional_shadow_max_distance = 140 if fast else 210
 
 
 func set_state(value: Dictionary) -> void:

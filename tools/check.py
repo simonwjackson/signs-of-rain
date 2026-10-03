@@ -23,6 +23,7 @@ commands = [
     [GODOT, "--headless", "--path", ".", "--script", "tests/terrain_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/view_interaction_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/picking_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/graphics_test.gd"],
     [sys.executable, "tests/operations_test.py"],
     [GD + "gdformat", "--check", "game", "ui", "sim", "tests"],
     [GD + "gdlint", "game", "ui", "sim", "tests"],

@@ -35,6 +35,7 @@ var tick_on_restart := 0
 
 
 func _ready() -> void:
+	var graphics := _saved_graphics()
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--seed="):
 			seed_value = argument.trim_prefix("--seed=").to_int()
@@ -44,8 +45,11 @@ func _ready() -> void:
 			intro = false
 		elif argument == "--mute":
 			muted = true
+		elif argument.begins_with("--graphics="):
+			graphics = argument.trim_prefix("--graphics=")
 	valley = Valley.new()
 	add_child(valley)
+	valley.set_graphics(graphics)
 	valley.chosen.connect(_world_input)
 	hud = Hud.new()
 	add_child(hud)
@@ -55,6 +59,7 @@ func _ready() -> void:
 	sound = Sound.new()
 	add_child(sound)
 	sound.set_enabled(not muted)
+	hud.update_toggles(muted, reduced_motion, valley.graphics == "fast")
 	resized.connect(_arrange)
 	_restart(false)
 	if intro:
@@ -230,12 +235,36 @@ func _command(name: String) -> void:
 			hud.toast("Sound off" if muted else "Sound on")
 		"motion":
 			reduced_motion = not reduced_motion
+		"graphics":
+			valley.set_graphics("high" if valley.graphics == "fast" else "fast")
+			_save_graphics(valley.graphics)
+			hud.toast("Faster graphics" if valley.graphics == "fast" else "Full graphics")
 		"quit":
 			_emit_evidence()
 			get_tree().quit()
-	hud.update_toggles(muted, reduced_motion)
+	hud.update_toggles(muted, reduced_motion, valley.graphics == "fast")
 	_refresh()
 	_emit_evidence()
+
+
+## Default to faster graphics on integrated GPUs; a saved choice always wins.
+func _saved_graphics() -> String:
+	var stored := ConfigFile.new()
+	if stored.load("user://settings.cfg") == OK:
+		return str(stored.get_value("graphics", "preset", "high"))
+	var integrated := (
+		RenderingServer.get_video_adapter_type() == RenderingDevice.DEVICE_TYPE_INTEGRATED_GPU
+	)
+	return "fast" if integrated else "high"
+
+
+func _save_graphics(preset: String) -> void:
+	var stored := ConfigFile.new()
+	stored.load("user://settings.cfg")
+	stored.set_value("graphics", "preset", preset)
+	var result := stored.save("user://settings.cfg")
+	if result != OK:
+		hud.toast("Cannot save the graphics choice: " + error_string(result))
 
 
 func _restart(as_replay: bool) -> void:
@@ -376,6 +405,7 @@ func _emit_evidence() -> void:
 	snapshot["window_size"] = [size.x, size.y]
 	snapshot["world_rect"] = [valley.position.x, valley.position.y, valley.size.x, valley.size.y]
 	snapshot["fps"] = Engine.get_frames_per_second()
+	snapshot["graphics"] = valley.graphics
 	snapshot["camera"] = valley.camera_evidence()
 	var camera_position: Vector3 = snapshot["camera"]["position"]
 	snapshot["camera"]["terrain_clearance"] = (

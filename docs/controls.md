@@ -24,7 +24,7 @@ The drought ends after seven days, about 4 minutes 40 seconds at normal speed. Y
 | H | Open the guide. |
 | Escape | Close a panel or cancel miracle targeting. |
 | Right click | Cancel miracle targeting. |
-| Menu | Access replay, save replay, reduced motion, and Quit. |
+| Menu | Access replay, save replay, reduced motion, faster graphics, and Quit. |
 
 The guide and People list do not pause time automatically. Use Space before opening them if you want time to stop. The first guide starts paused.
 
@@ -45,5 +45,7 @@ World activity has meaning. People carry food baskets and water vessels only whe
 The valley contains 24 rule-driven people and four starting history patterns. Trust and history stay fixed. Reports carry attributed facts without inventing new details. There are no buildings to construct, obstacles to navigate, deaths, campaign, or creature. Travel is direct, so characters can cross scenery.
 
 Resources and beliefs interact, but this is not a calibrated survival model or a theory of religion. A kind gift can also cause travel and offerings that reduce harvesting. There is no single moral score or guaranteed best strategy.
+
+Faster graphics renders the 3D view at 67% resolution with FSR upscaling. It also turns off 4x MSAA, indirect light, and volumetric fog, and uses two shadow cascades. It starts on automatically on integrated GPUs; the menu choice is saved. Launch with `-- --graphics=high` or `-- --graphics=fast` to override it once. The simulation is identical in both modes.
 
 Desktop mouse and keyboard are the supported controls. Small windows keep the controls but make the world harder to read; use the People menu there, then close the inspector to see the focused person. Camera clearance prevents terrain penetration, but does not prevent passing through architecture. Controller, touch, and screen-reader play are not verified. Seeded results are verified on the supplied Godot 4.6.1 runtime, not across engine versions or CPU architectures.

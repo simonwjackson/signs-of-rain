@@ -130,6 +130,7 @@ func _build_bar() -> void:
 	popup.add_separator()
 	popup.add_check_item("Mute sound     M", 5)
 	popup.add_check_item("Reduce motion", 6)
+	popup.add_check_item("Faster graphics", 12)
 	popup.add_item("Controls and story     H", 7)
 	popup.add_item("Quit", 8)
 	popup.id_pressed.connect(_menu_command)
@@ -156,7 +157,8 @@ func _menu_command(id: int) -> void:
 		"quit",
 		"next",
 		"focus",
-		"overview"
+		"overview",
+		"graphics"
 	]
 	command.emit(names[id])
 
@@ -478,9 +480,10 @@ func show_ending(summary: Dictionary) -> void:
 	actions.add_child(inspect)
 
 
-func update_toggles(sound_muted: bool, still: bool) -> void:
+func update_toggles(sound_muted: bool, still: bool, faster: bool = false) -> void:
 	muted = sound_muted
 	reduced_motion = still
 	var popup := menu.get_popup()
 	popup.set_item_checked(popup.get_item_index(5), muted)
 	popup.set_item_checked(popup.get_item_index(6), reduced_motion)
+	popup.set_item_checked(popup.get_item_index(12), faster)

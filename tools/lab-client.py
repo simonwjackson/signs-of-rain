@@ -54,7 +54,9 @@ elif args.action == "input":
         str(helper), [str(helper), "--wayland-display", seat["WAYLAND_DISPLAY"]], env
     )
 elif args.action == "close":
-    subprocess.run(["swaymsg", '[title="Signs of Rain"]', "kill"], env=env, check=True)
+    # The private compositor holds only this game; matching every view avoids
+    # depending on the client's current window title.
+    subprocess.run(["swaymsg", "[all]", "kill"], env=env, check=True)
 elif args.action == "resize":
     width, height = [int(x) for x in args.args]
     if not 320 <= width <= 3840 or not 240 <= height <= 2160:
