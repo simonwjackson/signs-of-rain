@@ -14,6 +14,8 @@ import socket
 import subprocess
 import tempfile
 
+from godot_profile import isolated_environment
+
 ROOT = Path(__file__).resolve().parents[1]
 TOOLCHAIN = Path.home() / ".cache/signs-of-rain/android-toolchain/manifest.json"
 SIGNING = Path.home() / ".local/share/signs-of-rain/android-signing"
@@ -123,6 +125,7 @@ def build(toolchain_path, output, initialize):
             actual = hashlib.file_digest(stream, "sha256").hexdigest()
         if actual != expected:
             raise ValueError("Template checksum mismatch: " + name)
+    git = str(Path(tooling["git"]) / "bin/git")
     version = run([str(godot), "--version"])
     if (
         not version.startswith("4.6.1.")
@@ -134,31 +137,25 @@ def build(toolchain_path, output, initialize):
         key=lambda path: tuple(int(item) for item in path.name.split(".")),
     )
     output.mkdir(parents=True, exist_ok=True)
-    revision = run(["git", "rev-parse", "HEAD"])
-    dirty = bool(run(["git", "status", "--porcelain"]))
+    revision = run([git, "rev-parse", "HEAD"])
+    dirty = bool(run([git, "status", "--porcelain"]))
     signatures = signing_environment(java, initialize)
     with tempfile.TemporaryDirectory(prefix="android-export-", dir=output) as temporary:
         work = Path(temporary)
         project = work / "project"
         project.mkdir()
         stage_project(ROOT, project, templates)
-        config = work / "config/godot"
-        config.mkdir(parents=True)
-        settings = '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
-        for key, value in {
-            "export/android/java_sdk_path": str(java),
-            "export/android/android_sdk_path": str(sdk),
-            "export/android/shutdown_adb_on_exit": False,
-        }.items():
-            settings += key + " = " + json.dumps(value) + "\n"
-        (config / "editor_settings-4.6.tres").write_text(settings)
-        environment = dict(
-            os.environ,
-            XDG_CONFIG_HOME=str(work / "config"),
-            XDG_DATA_HOME=str(work / "data"),
-            XDG_CACHE_HOME=str(work / "cache"),
+        environment = isolated_environment(
+            work,
+            settings={
+                "export/android/java_sdk_path": str(java),
+                "export/android/android_sdk_path": str(sdk),
+            },
+        )
+        environment.update(
             JAVA_HOME=str(java),
             ANDROID_HOME=str(sdk),
+            PATH=str(java / "bin") + os.pathsep + os.environ.get("PATH", ""),
             **signatures,
         )
         # XDG overrides stop build imports/headless smoke from changing live game saves.

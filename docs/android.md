@@ -19,6 +19,18 @@ Replace `PHONE_SERIAL` with the intended phone from `adb devices -l`. Do not ins
 
 The package is `org.signsofrain.prototype`, version `0.1.0`, code `1`. The template targets Android API 35 and declares a minimum of API 24. The Mobile renderer also needs suitable graphics hardware. Orientation follows the device, and the activity supports resizing.
 
+## Wireless pairing
+
+Inside `nix develop`, use the phone's Developer options → Wireless debugging → Pair device with pairing code:
+
+```sh
+adb pair PHONE_IP:PAIRING_PORT
+adb connect PHONE_IP:CONNECTION_PORT
+adb -s PHONE_IP:CONNECTION_PORT install -r build/android/signs-of-rain.apk
+```
+
+Enter the six-digit code at the prompt. The pairing port and connection port are different. Keep the pairing dialog open until pairing succeeds. The connection port can change; read it from the main Wireless debugging page. Pairing credentials stay in the host's normal private ADB directory, outside this project and the Nix store. Disable wireless debugging or revoke the paired computer after testing if you do not need further access.
+
 ## Play
 
 Tap to select a person or place the selected miracle. Drag one finger to orbit. Drag two fingers to pan, or pinch to zoom. A drag never casts a miracle on release. The bottom row contains Look, Rain, Food, Pause, and the controls menu. Every other action stays in that scrollable menu. See [all controls](controls.md).
@@ -32,14 +44,15 @@ Android starts with Faster graphics. It keeps shadows, ordinary fog, glow, water
 Run these commands from a clean committed checkout:
 
 ```sh
-./tools/check.py
-./tools/prepare-android.py --host simonwjackson@aka
-./tools/build-android-on-host.py --host simonwjackson@aka
+nix run .#check
+nix flake check
+nix run .#prepare-android -- --host simonwjackson@aka
+nix run .#build-android -- --host simonwjackson@aka
 ```
 
 Use `--init-signing` with the last command only for the first build on a new host. The build creates the project's signing key under `~/.local/share/signs-of-rain/android-signing/` on that host. Back up both `release.keystore` and `password` privately. They never belong in Git, the APK, or an attachment. Keep the same key for compatible APK updates. Losing it can require uninstalling the old app, which removes its local settings and replay file.
 
-Preparation copies the pinned Nix tool closures and verifies the official export-template archive against its recorded SHA-512. It extracts only the Android templates. The standard template export uses JDK 17 and cached Android Build Tools 36.0.0 for signing. It does not compile the Godot engine, use Gradle, or need the SDK's NDK/CMake packages. The template's target API remains 35. This toolchain is pinned to the recorded Nix store paths.
+Preparation realises `packages.android-toolchain` from `flake.lock`, then copies and roots its complete Nix closure on the build host. Nix verifies the official export-template archive against its fixed SHA-512 and extracts only the Android templates. The generated manifest references Godot, JDK, SDK, templates, Python, and Git in the Nix store. Remote helpers use the copied Python and Git explicitly, so they do not need a host nixpkgs channel. The build host still needs Nix and SSH. Preparation checks both template hashes before writing the host cache manifest. The standard template export uses JDK 17 and cached Android Build Tools 36.0.0 for signing. It does not compile the Godot engine, use Gradle, or need the SDK's NDK/CMake packages. The template's target API remains 35. The lockfile pins the package definitions, so a clean machine can recreate the toolchain instead of needing pre-existing store paths. The initial template archive download is large; later builds reuse the Nix store.
 
 The remote build uses an isolated Git clone. The exporter uses a second temporary copy containing only runtime folders. Godot configuration, cache, and user data stay inside that temporary build. The scripts do not change the build host's normal Godot settings, game saves, installed Linux launcher, system services, or live graphical session.
 
@@ -51,7 +64,7 @@ The builder rejects other engine versions, changed templates, export errors, bad
 
 `tools/test-mobile-render.py` captures the actual Mobile renderer on an owned headless compositor. It uses separate configuration, runtime, cache, and user-data directories, and muted audio. It checks folded, unfolded, high-density, and wide-short shapes. This is a desktop Vulkan test, not an ARM64 Android run or a phone benchmark.
 
-No Fold8 was connected during the initial build. Installation, real multitouch, fold transitions, safe-area reporting, interrupted audio, sustained frame time, heat, battery use, and ARM replay determinism still need a device test. Do not infer phone performance from laptop results.
+The initial APK was installed through paired wireless ADB on `SM-F971U1`, running Android 17. Installation reported `Success`, and its running app process was observed through ADB. Real multitouch, fold transitions, safe-area reporting, interrupted audio, sustained frame time, heat, battery use, and ARM replay determinism still need a device test. Do not infer phone performance from laptop results.
 
 ## Platform references
 

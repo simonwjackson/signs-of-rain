@@ -8,10 +8,15 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
+
+from godot_profile import isolated_environment
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME = Path("/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable")
-GODOT = Path(os.environ.get("GODOT", str(RUNTIME / "bin/godot"))).resolve()
+binary = os.environ.get("GODOT") or shutil.which("godot")
+if not binary:
+    raise SystemExit("Missing Godot; use nix run .#build-linux or nix develop")
+GODOT = Path(binary).resolve()
 if GODOT.parts[:3] != ("/", "nix", "store"):
     raise SystemExit("A release needs a Godot executable from a copyable Nix closure")
 RUNTIME = Path(*GODOT.parts[:4])
@@ -19,9 +24,15 @@ OUT = ROOT / "build/signs-of-rain"
 
 
 def run(arguments, cwd=ROOT):
-    result = subprocess.run(
-        arguments, cwd=cwd, text=True, capture_output=True, check=True
-    )
+    with tempfile.TemporaryDirectory(prefix="signs-linux-build-") as private:
+        result = subprocess.run(
+            arguments,
+            cwd=cwd,
+            env=isolated_environment(private),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
     print(result.stdout)
     print(result.stderr)
     if "SCRIPT ERROR:" in result.stderr or "\nERROR:" in result.stderr:

@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -17,11 +18,11 @@ def run(arguments, cwd=ROOT):
     return subprocess.run(arguments, cwd=cwd, check=True, text=True)
 
 
-def prepare(root, bundle):
+def prepare(root, bundle, git):
     destination = Path(root).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     run(
-        ["git", "clone", "--quiet", bundle, str(destination / "source")],
+        [git, "clone", "--quiet", bundle, str(destination / "source")],
         cwd=destination,
     )
     Path(bundle).unlink()
@@ -37,13 +38,20 @@ def build(host, initialize):
     )
     if dirty:
         raise ValueError("Commit the source before producing a remote release")
+    toolchain = os.environ.get("SIGNS_ANDROID_TOOLCHAIN")
+    if not toolchain:
+        raise ValueError("Use nix run .#build-android or run inside nix develop")
+    tooling = json.loads((Path(toolchain) / "manifest.json").read_text())
+    python = str(Path(tooling["python"]) / "bin/python3")
+    git = str(Path(tooling["git"]) / "bin/git")
+    run(["nix", "copy", "--to", "ssh://" + host, toolchain])
     with tempfile.TemporaryDirectory(prefix="signs-android-upload-") as temporary:
         bundle = Path(temporary) / "source.bundle"
         run(["git", "bundle", "create", str(bundle), "HEAD"])
         stamp = str(time.time_ns())
         # Paths are relative to the remote user's home, not a local username.
         remote = ".cache/signs-of-rain/android-build/" + stamp
-        script = "/tmp/signs-android-on-host.py"
+        script = "/tmp/signs-android-on-host-" + stamp + ".py"
         remote_bundle = "/tmp/signs-android-" + stamp + ".bundle"
         run(["scp", "-q", str(Path(__file__).resolve()), host + ":" + script])
         run(["scp", "-q", str(bundle), host + ":" + remote_bundle])
@@ -53,7 +61,10 @@ def build(host, initialize):
                 "-o",
                 "BatchMode=yes",
                 host,
+                python,
                 script,
+                "--git",
+                git,
                 "--remote-prepare",
                 remote,
                 remote_bundle,
@@ -64,7 +75,10 @@ def build(host, initialize):
             "-o",
             "BatchMode=yes",
             host,
+            python,
             remote + "/source/tools/build-android.py",
+            "--toolchain",
+            toolchain + "/manifest.json",
         ]
         if initialize:
             arguments.append("--init-signing")
@@ -101,9 +115,14 @@ def main():
     parser.add_argument("--host", default="simonwjackson@aka")
     parser.add_argument("--init-signing", action="store_true")
     parser.add_argument("--remote-prepare", nargs=2, metavar=("DIRECTORY", "BUNDLE"))
+    parser.add_argument(
+        "--git", help="Pinned Git executable for remote clone preparation"
+    )
     args = parser.parse_args()
     if args.remote_prepare:
-        prepare(*args.remote_prepare)
+        if not args.git:
+            parser.error("--remote-prepare requires the pinned --git executable")
+        prepare(*args.remote_prepare, args.git)
     else:
         build(args.host, args.init_signing)
 

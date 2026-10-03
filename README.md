@@ -24,30 +24,37 @@ See [controls and experiments](docs/controls.md) before the first run. Normal pl
 
 The Android prototype keeps the 3D game and adds one-finger orbit, two-finger pan/pinch, tap actions, safe-area layout, and density-scaled controls. Every action is available without a keyboard. It uses Godot's Mobile renderer and starts with Faster graphics.
 
-Build the signed ARM64 APK on aka with `./tools/build-android-on-host.py --host simonwjackson@aka` from a clean committed checkout after toolchain preparation. The output is `build/android/signs-of-rain.apk`. See [installation, reproduction, and device-test limits](docs/android.md).
+Build the signed ARM64 APK on aka with `nix run .#build-android -- --host simonwjackson@aka` from a clean committed checkout after toolchain preparation. The output is `build/android/signs-of-rain.apk`. See [installation, reproduction, and device-test limits](docs/android.md).
 
-The package and desktop Mobile rendering are checked. No Android phone was connected, so installation, physical touch, folding, heat, and phone frame rate remain unverified. The Android build does not replace the installed Linux launcher.
+The package and desktop Mobile rendering are checked. Wireless ADB installed the APK on `SM-F971U1` running Android 17. Physical touch, folding, heat, and phone frame rate remain unverified. The Android build does not replace the installed Linux launcher.
 
 ## Develop and rebuild
 
-The tested engine is:
-
-```text
-/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot
-```
-
-With Godot 4.6.1 available, open `project.godot` or run `godot --path .`. `tools/build.py` accepts a `GODOT` executable override and rejects other engine versions. Fonts and generated wave files are included. `tools/prepare-assets.py` regenerates the authored sound.
+The project lives at `~/code/sandbox/signs-of-rain`. `flake.lock` pins nixpkgs revision `c06b4ae3d6599a672a6210b7021d699c351eebda`. The flake supplies Godot 4.6.1, JDK 17, Android SDK/Build Tools 36, Python, GDScript tooling, and Ruff. Android templates have a fixed official SHA-512. The SDK follows the `home-kiosk` composition pattern, without an NDK, emulator, or CMake.
 
 ```sh
-./tools/check.py
-./tools/build.py
+nix develop
+nix run .#check
+nix flake check
+nix run .#prepare-android -- --host simonwjackson@aka
+nix run .#build-android -- --host simonwjackson@aka
+```
+
+Run commands from this checkout. `nix run .#check` writes results under ignored `build/local-checks.json`, so checks do not make the release source dirty. `nix flake check` runs the full suite in an isolated source copy. Both run the real engine tests and Python tests.
+
+Inside `nix develop`, open `project.godot` or run `godot --path .`. The shell also exposes `adb` for wireless pairing and APK installation. Fonts and generated wave files are included. `tools/prepare-assets.py` regenerates the authored sound.
+
+For the separate Linux release:
+
+```sh
+nix run .#build-linux
 ./build/signs-of-rain/launch
 ./tools/deploy.py
 ```
 
 The deploy script copies the pinned runtime to `simonwjackson@aka`, verifies the release hashes, and changes only this game's `current` link. It refuses deployment while this game's launcher holds its lock. Older releases remain under `releases/`. The build records whether its source tree was dirty.
 
-This is an x86_64 NixOS delivery, not a portable Windows/macOS release. Restoring the recorded Nix closure is required if it is absent. Nix-shebang helper environments use the host's nixpkgs registry; the tested game engine itself is pinned. No Git remote or public release is configured.
+This is an x86_64 NixOS delivery, not a portable Windows/macOS release. Restoring the recorded Nix closure is required if it is absent. Use the flake commands for the locked toolchain. Direct Nix-shebang helper environments still use the host's nixpkgs registry. Signing stays outside Nix builds and the Nix store. No Git remote or public release is configured.
 
 ## Verification and implementation
 

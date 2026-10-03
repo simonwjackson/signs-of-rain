@@ -5,16 +5,29 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 
+from godot_profile import isolated_environment
+
 ROOT = Path(__file__).resolve().parents[1]
-GODOT = os.environ.get(
-    "GODOT", "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot"
-)
-GD = "/nix/store/pj444b1388w76r3zi7y75r3fgbrqg8ji-gdtoolkit-4.5.0/bin/"
-RUFF = "/nix/store/nmylkiq687h76gk4snd3kqqvwbwg1vnd-ruff-0.15.5/bin/ruff"
+
+
+def executable(name, variable):
+    path = os.environ.get(variable) or shutil.which(name)
+    if not path:
+        raise SystemExit("Missing " + name + "; use nix run .#check or nix develop")
+    return path
+
+
+GODOT = executable("godot", "GODOT")
+GDFORMAT = executable("gdformat", "GDFORMAT")
+GDLINT = executable("gdlint", "GDLINT")
+RUFF = executable("ruff", "RUFF")
+if not subprocess.check_output([GODOT, "--version"], text=True).startswith("4.6.1."):
+    raise SystemExit("Replay validation requires Godot 4.6.1")
 commands = [
     [GODOT, "--headless", "--path", ".", "--editor", "--import", "--quit"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/simulation_test.gd"],
@@ -30,16 +43,14 @@ commands = [
     [GODOT, "--headless", "--path", ".", "--script", "tests/density_test.gd"],
     [sys.executable, "tests/operations_test.py"],
     [sys.executable, "tests/android_build_test.py"],
-    [GD + "gdformat", "--check", "game", "ui", "sim", "tests"],
-    [GD + "gdlint", "game", "ui", "sim", "tests"],
+    [GDFORMAT, "--check", "game", "ui", "sim", "tests"],
+    [GDLINT, "game", "ui", "sim", "tests"],
     [RUFF, "check", "tools", "tests"],
     [RUFF, "format", "--check", "tools", "tests"],
 ]
 # Engine tests must not read or change the player's settings or editor profile.
 private = tempfile.TemporaryDirectory(prefix="signs-check-")
-environment = dict(os.environ)
-for kind in ("CONFIG", "DATA", "CACHE"):
-    environment["XDG_" + kind + "_HOME"] = str(Path(private.name) / kind.lower())
+environment = isolated_environment(private.name)
 results = []
 for command in commands:
     result = subprocess.run(
@@ -62,7 +73,9 @@ for command in commands:
         }
     )
 private.cleanup()
-report = ROOT / "verification/local-checks.json"
-report.parent.mkdir(exist_ok=True)
+report = Path(
+    os.environ.get("SIGNS_CHECK_REPORT", str(ROOT / "verification/local-checks.json"))
+)
+report.parent.mkdir(parents=True, exist_ok=True)
 report.write_text(json.dumps(results, indent=2) + "\n")
 raise SystemExit(0 if all(item["passed"] for item in results) else 1)

@@ -6,7 +6,7 @@ Historical Linux evidence: 344 local checks and 37 target checks passed. The cur
 
 ## Local checks
 
-Run `./tools/check.py`. The command imports the real project, runs engine tests and real subprocess/filesystem tests, then checks GDScript/Python formatting and lint. It fails on Godot error output even when Godot returns zero.
+Run `nix run .#check`, or `./tools/check.py` inside `nix develop`. The command imports the real project, runs engine tests and real subprocess/filesystem tests, then checks GDScript/Python formatting and lint. It fails on Godot error output even when Godot returns zero.
 
 | Boundary | What it establishes |
 | --- | --- |
@@ -21,7 +21,7 @@ Run `./tools/check.py`. The command imports the real project, runs engine tests 
 | Android layout | Folded/unfolded/short containers, 48-unit controls, overflow sheets, and physical safe-area scaling/translation. A 3× window tests physical-resolution rendering and input picking with a logical UI. |
 | Android packaging | Staging isolation, path traversal rejection, APK runtime-resource boundaries, ARM64 ELF contents, and 16 KiB alignment. Artifact signatures and manifests are checked on the actual APK, not inferred from fixture tests. |
 
-Exact commands and results are in `local-checks.json`. The build also inspects the actual exported pack, requiring runtime resources and rejecting development data. `simulation-results.json` and `simulation-report.md` contain independent seeded strategy comparisons and complete-state digests. They are not substitutes for real-device play.
+Committed source-check results are in `local-checks.json`. `nix run .#check` writes fresh results to ignored `build/local-checks.json`. `nix flake check` runs the same full suite in an isolated source copy. The build also inspects the actual exported pack, requiring runtime resources and rejecting development data. `simulation-results.json` and `simulation-report.md` contain independent seeded strategy comparisons and complete-state digests. They are not substitutes for real-device play.
 
 ## Android evidence
 
@@ -29,7 +29,7 @@ The signed APK is exported on aka from the pinned official Godot 4.6.1 Android t
 
 `./tools/test-mobile-render.py` uses an owned private compositor and the actual Mobile renderer on aka's RX 7900 XT. It captures a 360×720 folded shape, 720×900 unfolded shape, a 1848×2448 window at 3× UI density, and a 1280×300 short shape. Images and metadata remain in `artifacts/android-render/`. The report checks that BW2/Korri processes stayed running. These captures establish desktop Mobile rendering and layout, not Android runtime compatibility or performance.
 
-No Android phone was connected. APK installation, physical multitouch, fold transitions, safe-area reporting, phone FPS/heat, and ARM replay determinism remain unverified. See [the Android build and installation instructions](../docs/android.md).
+Wireless ADB paired the phone and installed the hash-verified APK on `SM-F971U1` running Android 17. Installation reported `Success`, and the running app process was observed. Physical multitouch, fold transitions, safe-area reporting, phone FPS/heat, and ARM replay determinism remain unverified. See [the Android build and installation instructions](../docs/android.md).
 
 ## Historical aka Linux acceptance
 
@@ -66,4 +66,4 @@ The remote originals are under `~/.local/share/signs-of-rain/lab/`. The collecti
 
 This is a bounded prototype. No campaign, combat, creature, mortality, obstacle navigation, dynamic trust, invented report facts, facial animation, cloth physics, or foot/grip IK. Characters can slide or cross scenery on arbitrary routes. The camera stays above terrain but can pass through buildings. Water pools are visual scenery; the common well level is the resource-backed water surface. Only the latest rain footprint changes ground wetness.
 
-Determinism is verified with the supplied Godot 4.6.1 build, not across engine versions or CPU architectures. Mouse/keyboard and engine-routed screen events are verified. Physical phone touch, Android execution, controller, screen-reader play, other operating systems, and human sound-quality evaluation are not.
+Determinism is verified with the supplied Godot 4.6.1 build, not across engine versions or CPU architectures. Mouse/keyboard and engine-routed screen events are verified. Physical phone gameplay acceptance, controller, screen-reader play, other operating systems, and human sound-quality evaluation are not.

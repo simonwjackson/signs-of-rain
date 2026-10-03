@@ -11,10 +11,13 @@ import subprocess
 import tempfile
 import time
 
+from godot_profile import isolated_environment
 from owned_process import stop_owned
 
 ROOT = Path(__file__).resolve().parents[1]
-GODOT = "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot"
+GODOT = os.environ.get("GODOT") or shutil.which("godot")
+if not GODOT:
+    raise SystemExit("Missing Godot; run this script inside nix develop")
 CASES = [
     ("folded", 360, 720, 1.0),
     ("unfolded", 720, 900, 1.0),
@@ -61,12 +64,9 @@ def test(output):
         config.write_text(
             'output * mode 720x900\noutput * bg #123333 solid_color\ndefault_border none\nfocus_follows_mouse no\nfor_window [app_id=".*"] fullscreen enable\n'
         )
-        env = dict(
-            os.environ,
+        env = isolated_environment(temporary)
+        env.update(
             XDG_RUNTIME_DIR=str(runtime),
-            XDG_CONFIG_HOME=str(temporary / "config"),
-            XDG_DATA_HOME=str(temporary / "data"),
-            XDG_CACHE_HOME=str(temporary / "cache"),
             WLR_BACKENDS="headless",
             WLR_RENDERER="gles2",
             WLR_RENDER_DRM_DEVICE="/dev/dri/renderD128",
