@@ -73,9 +73,17 @@ buildPkgs.runCommand "signs-of-rain"
     cat > "$out/bin/signs-of-rain" <<'LAUNCHER'
     #!${runtimePkgs.runtimeShell}
     pack=${pack}/signs-of-rain.pck
-    if [ "$#" -ge 2 ] && [ "$1" = --main-pack ]; then
+    if [ "''${1:-}" = --main-pack ]; then
+      if [ "$#" -lt 2 ]; then
+        printf '%s\n' 'Signs of Rain: --main-pack needs a file path' >&2
+        exit 1
+      fi
       pack="$2"
       shift 2
+    fi
+    if [ ! -f "$pack" ] || [ ! -r "$pack" ]; then
+      printf '%s\n' 'Signs of Rain: game pack is missing or unreadable' >&2
+      exit 1
     fi
     exec ${runtime}/bin/godot --main-pack "$pack" ${
       buildPkgs.lib.optionalString (
