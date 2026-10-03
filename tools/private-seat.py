@@ -129,12 +129,28 @@ try:
         if args[0] == "quit":
             break
         if args[0] == "shot":
-            subprocess.run(["grim", name(args[1])], env=env, check=True)
+            subprocess.run(
+                ["grim", name(args[1])],
+                env=env,
+                check=True,
+                timeout=15,
+                stdin=subprocess.DEVNULL,
+            )
             print("SHOT_DONE " + args[1], flush=True)
         elif args[0] == "record":
             if recorder is not None and recorder.poll() is None:
                 raise RuntimeError("Already recording")
             output = name(args[1])
+            existing = Path(output)
+            if existing.exists():
+                existing.rename(
+                    existing.with_name(
+                        existing.stem
+                        + "-previous-"
+                        + str(time.time_ns())
+                        + existing.suffix
+                    )
+                )
             record_log = (lab / "recorder.log").open("w")
             recorder = subprocess.Popen(
                 [
@@ -150,6 +166,7 @@ try:
                     "--audio=" + env["PULSE_SOURCE"],
                 ],
                 env=env,
+                stdin=subprocess.DEVNULL,
                 stdout=record_log,
                 stderr=subprocess.STDOUT,
             )

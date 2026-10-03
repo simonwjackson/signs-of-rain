@@ -17,7 +17,7 @@ Verified implementation: two dressed Quaternius humanoids, real faces and hair, 
 | Working | `Fixing_Kneeling` | `Fixing_Kneeling` |
 | Sharing | `Interact` | `Interact` |
 
-Godot removes the `_Loop` suffix automatically. These exact imported names were read from the real AnimationPlayer. Movement takes precedence over stationary activity. Only nonzero carried quantities show the bread basket or water bucket. Both can show at once. A bucket remains upright as the hand turns.
+Godot removes the `_Loop` suffix automatically. These exact imported names were read from the real AnimationPlayer. Movement normally takes precedence over stationary activity. Completed sharing or reporting decisions can play a short interaction cue while travel continues. Only nonzero carried quantities show the bread basket or water bucket. Both can show at once. A bucket remains upright as the hand turns.
 
 ## Actual asset inspection
 
@@ -60,4 +60,4 @@ Verified with Godot 4.6.1 in an isolated real scene under `/tmp/signs-people-tes
 - Actual Forward+ Vulkan rendering on the local **NVIDIA GeForce RTX 3060 Laptop GPU**, not a substitute claim about aka's RX 7900 XT.
 - Viewed `/tmp/signs-people-render.png`, `/tmp/signs-people-render-2.png`, and `/tmp/signs-people-close.png`. Different walking poses and a close-up establish dressed humanoids with visible faces, hair, cloth and boots. The close-up uses 4x MSAA.
 
-Visual judgment: readable stylized human characters, not faceless placeholders. They are not photorealistic. The female outfit has a fantasy-adventurer silhouette. There is no facial animation, cloth simulation, foot IK, terrain-aware stride or grip IK. Supplies are simple procedural vessels, not textured authored props. Fixed walk cadence can slide against varying simulation speeds. The working clip loops a kneeling repair motion rather than a farming-specific animation. Normal-mapped 1024 textures and these polygon counts do not establish final landscape-scale performance. Parent must verify 24 people on terrain, camera close-up/overview, and aka Forward+ deployment.
+Visual judgment: readable stylized human characters, not faceless placeholders. They are not photorealistic. The female outfit has a fantasy-adventurer silhouette. There is no facial animation, cloth simulation, foot IK, terrain-aware stride or grip IK. Supplies are simple procedural vessels, not textured authored props. Walk cadence follows measured render travel speed, but without foot IK there can still be foot sliding. The working clip loops a kneeling repair motion rather than a farming-specific animation. Normal-mapped 1024 textures and these polygon counts do not establish final landscape-scale performance. Integrated target verification covers 24 people on terrain, camera close-up/overview, and aka Forward+ separately in `verification/README.md`. Asset-only local renders are not that target evidence.

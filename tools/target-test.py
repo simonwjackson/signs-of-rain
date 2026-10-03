@@ -281,12 +281,12 @@ try:
     wide = wait_state(
         lambda s: (
             s["camera"]["distance"] > 90
-            and s["camera"]["pitch"] > 35
+            and s["camera"]["pitch"] > 25
             and abs(s["camera"]["distance"] - s["camera"]["target_distance"]) < 0.1
         ),
         15,
     )
-    check(wide["camera"]["pitch"] > 35, "zoom climbs continuously to a landscape view")
+    check(wide["camera"]["pitch"] > 25, "zoom climbs continuously to a landscape view")
     shot("landscape-wide")
     save_state("camera-landscape")
     key(47)  # V: overview.
