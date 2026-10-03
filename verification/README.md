@@ -2,7 +2,7 @@
 
 The delivered experience is the 3D rebuild, not the earlier flat-map prototype. The model stays the same. Tests run against the real Godot implementation and the actual installed game.
 
-Verified: 344 local checks and 37 target checks passed. The 80.981-second recording contains 2,429 decoded video frames at 1280×800. Its pack SHA-256 is `827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b`.
+Verified: 344 local checks and 37 target checks passed. The 80.981-second recording contains 2,429 decoded video frames at 1280×800. Its recorded pack SHA-256 is `827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b`. A later [export boundary correction](pack-report.md) removes development captures without changing game code.
 
 ## Local checks
 
@@ -18,7 +18,7 @@ Run `./tools/check.py`. The command imports the real project, runs engine tests 
 | Interaction | Paused casts update 3D resources, modal/restart cancels camera drag, target colors track mode, and opaque buildings/terrain block person picking. |
 | Operations | Verified atomic release copies, incomplete-copy rejection, traversal rejection, shared-seat input refusal, and bounded termination of a real resistant child. |
 
-Exact commands and results are in `local-checks.json`. `simulation-results.json` and `simulation-report.md` contain independent seeded strategy comparisons and complete-state digests. They are not substitutes for real-device play.
+Exact commands and results are in `local-checks.json`. The build also inspects the actual exported pack, requiring runtime resources and rejecting development data. `simulation-results.json` and `simulation-report.md` contain independent seeded strategy comparisons and complete-state digests. They are not substitutes for real-device play.
 
 ## Actual aka acceptance
 

@@ -18,9 +18,9 @@ RUNTIME = Path(*GODOT.parts[:4])
 OUT = ROOT / "build/signs-of-rain"
 
 
-def run(arguments):
+def run(arguments, cwd=ROOT):
     result = subprocess.run(
-        arguments, cwd=ROOT, text=True, capture_output=True, check=True
+        arguments, cwd=cwd, text=True, capture_output=True, check=True
     )
     print(result.stdout)
     print(result.stderr)
@@ -68,6 +68,17 @@ def main():
             "--no-intro",
             "--mute",
         ]
+    )
+    run(
+        [
+            str(GODOT),
+            "--headless",
+            "--main-pack",
+            str(OUT / "signs-of-rain.pck"),
+            "--script",
+            str(ROOT / "tests/pack_test.gd"),
+        ],
+        cwd=OUT,
     )
     launcher = OUT / "launch"
     launcher.write_text(
