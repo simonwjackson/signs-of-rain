@@ -1,0 +1,19 @@
+{
+  "movie": "artifacts/gameplay.mp4",
+  "sha256": "f7a592b15bbfc7e3452e232f75066bf8140f80cb5aa61991ffad22ba41749450",
+  "duration_seconds": 80.906,
+  "decoded_video_frames": 2427,
+  "size": [
+    1280,
+    800
+  ],
+  "successive_frame_mean_differences": [
+    27.2292373046875,
+    24.779857747395834,
+    24.8694931640625,
+    24.8774375
+  ],
+  "human_listening_assessment": false,
+  "source_pack_sha256": "fdb1a62fc503a139bea87a21b93271e2b41d10c3031e13485247e42c4c71afcd",
+  "edits": "Camera tour followed by a full intervened run at player-selected 4x simulation speed. No synthetic gameplay frames."
+}

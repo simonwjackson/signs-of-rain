@@ -261,8 +261,7 @@ func refresh(
 	var hints := {
 		"observe":
 		"Wheel: zoom   ·   Middle drag: orbit   ·   Right drag: pan   ·   C: person   ·   V: valley",
-		"rain":
-		"Rain · 2 power. Put a village well inside the circle to restore its water and crops.",
+		"rain": "Rain · 2 power. Cover a village center to restore its water and crops.",
 		"food": "Click to leave food. It costs 1 power. A gift can mean different things."
 	}
 	hint.text = hints[mode]

@@ -13,7 +13,7 @@ The drought ends after seven days, about 4 minutes 40 seconds at normal speed. Y
 | C | Focus a close view on the selected person. |
 | V | Return to the whole valley. |
 | 1, or Look | Select a person by clicking them. |
-| 2, then click | Bring rain. Put a village well inside the preview circle to restore its water and crops. |
+| 2, then click | Bring rain. Put a village center inside the preview circle to restore its water and crops. |
 | 3, then click | Place a food cache. People must find it, collect it, and carry the food. |
 | Space | Pause or resume time. |
 | Tab | Inspect the next person. The People menu also lists everyone. |

@@ -150,7 +150,7 @@ func _world_input(point: Vector2, button: int) -> void:
 			var benefit := (
 				"Rain restores a village"
 				if mode == "rain" and event.village >= 0
-				else "Rain misses both village wells" if mode == "rain" else "Food arrives"
+				else "Rain misses both village centers" if mode == "rain" else "Food arrives"
 			)
 			hud.toast("%s. %d witnesses." % [benefit, event.witnesses.size()])
 		else:
@@ -160,8 +160,9 @@ func _world_input(point: Vector2, button: int) -> void:
 
 
 func _select(id: int) -> void:
+	var changed := selected != id
 	selected = id
-	if id >= 0 and valley.is_following_person():
+	if changed and id >= 0 and valley.is_following_person():
 		valley.focus_person(id)
 	mode = "observe"
 	_refresh()

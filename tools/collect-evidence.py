@@ -28,6 +28,7 @@ for name in [
     "replay-ending.json",
     "no-intervention-ending.json",
     "gameplay.mkv",
+    "camera-tour.mkv",
 ]:
     subprocess.run(["scp", "-q", remote + name, str(raw / name)], check=True)
 subprocess.run(["scp", "-q", remote + "*.png", str(raw)], check=True)
@@ -41,10 +42,11 @@ if (
 ):
     raise SystemExit("Target acceptance is incomplete; refusing a passed report")
 # Read every encoded frame. Container metadata alone is not a playable recording.
-subprocess.run(
-    ["ffmpeg", "-v", "error", "-i", str(raw / "gameplay.mkv"), "-f", "null", "-"],
-    check=True,
-)
+for source in ["camera-tour.mkv", "gameplay.mkv"]:
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(raw / source), "-f", "null", "-"],
+        check=True,
+    )
 movie = output / "gameplay.mp4"
 subprocess.run(
     [
@@ -53,9 +55,19 @@ subprocess.run(
         "error",
         "-y",
         "-i",
+        str(raw / "camera-tour.mkv"),
+        "-i",
         str(raw / "gameplay.mkv"),
-        "-vf",
-        "scale=1280:-2",
+        "-filter_complex",
+        "[0:v]setpts=PTS-STARTPTS[v0];[0:a]asetpts=PTS-STARTPTS[a0];"
+        "[1:v]setpts=PTS-STARTPTS[v1];[1:a]asetpts=PTS-STARTPTS[a1];"
+        "[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a];[v]scale=1280:-2[out]",
+        "-map",
+        "[out]",
+        "-map",
+        "[a]",
+        "-r",
+        "30",
         "-c:v",
         "libx264",
         "-preset",
@@ -136,6 +148,7 @@ report = {
     "successive_frame_mean_differences": differences,
     "human_listening_assessment": False,
     "source_pack_sha256": result["release"]["files"]["signs-of-rain.pck"],
+    "edits": "Camera tour followed by a full intervened run at player-selected 4x simulation speed. No synthetic gameplay frames.",
 }
 (ROOT / "verification/media-results.json").write_text(
     json.dumps(report, indent=2) + "\n"

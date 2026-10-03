@@ -134,6 +134,13 @@ func run() -> void:
 		game.valley.camera_evidence().followed_person == 0,
 		"close camera follows the inspected person"
 	)
+	game.valley.rig.orbit(Vector2(100, 0))
+	var orbit_yaw: float = game.valley.rig.wanted_yaw
+	game.hud.person_chosen.emit(0)
+	check(
+		is_equal_approx(game.valley.rig.wanted_yaw, orbit_yaw),
+		"selecting the same followed person preserves the manual orbit"
+	)
 	game.hud.person_chosen.emit(1)
 	check(
 		game.valley.camera_evidence().followed_person == 1,

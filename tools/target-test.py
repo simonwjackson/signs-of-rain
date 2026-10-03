@@ -380,9 +380,20 @@ try:
     key(33)
     key(33)  # 4x.
     wait_state(lambda s: s["tick"] >= 40)
+    key(46)  # See the sharing person, not just a distant marker.
+    wait_state(lambda s: s["camera"]["distance"] < 1.8, 15)
     shot("care")
-    key(15)  # Bram.
+    key(15)  # Bram. Close follow retargets with the inspector.
+    time.sleep(1.5)
     shot("ritual")
+    key(47)
+    wait_state(
+        lambda s: (
+            not s["camera"]["following"]
+            and abs(s["camera"]["distance"] - s["camera"]["target_distance"]) < 0.1
+        ),
+        15,
+    )
     wait_state(lambda s: s["tick"] >= 75)
     click_world("food", 490, 290)
     shot("food")
