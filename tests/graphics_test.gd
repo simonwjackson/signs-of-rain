@@ -26,7 +26,7 @@ func run() -> void:
 	await process_frame
 	var view: Control = game.valley
 	var before: String = game.simulation.digest()
-	view.set_graphics("fast")
+	view.set_graphics("fast", "forward_plus")
 	check(view.graphics == "fast", "fast preset is reported")
 	check(view.viewport.msaa_3d == Viewport.MSAA_DISABLED, "fast preset drops 4x MSAA")
 	check(
@@ -58,7 +58,7 @@ func run() -> void:
 		rendered < 1450000.0 and view.viewport.scaling_3d_scale >= .45,
 		"fast caps 3D pixels on a large HiDPI window without dropping below 45%"
 	)
-	view.set_graphics("high")
+	view.set_graphics("high", "forward_plus")
 	check(view.viewport.msaa_3d == Viewport.MSAA_4X, "high preset restores 4x MSAA")
 	check(view.viewport.scaling_3d_scale == 1.0, "high preset renders at full resolution")
 	check(
@@ -68,6 +68,35 @@ func run() -> void:
 	check(
 		view.sunlight.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS,
 		"high preset restores four shadow cascades"
+	)
+	for renderer in ["mobile", "gl_compatibility"]:
+		for preset in ["fast", "high"]:
+			view.set_graphics(preset, renderer)
+			check(
+				view.viewport.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR,
+				"%s/%s uses supported bilinear scaling" % [renderer, preset]
+			)
+			check(
+				not view.environment.ssil_enabled and not view.environment.volumetric_fog_enabled,
+				"%s/%s never enables Forward+-only effects" % [renderer, preset]
+			)
+			check(
+				view.environment.ssao_enabled == (renderer != "mobile"),
+				"%s/%s respects SSAO support" % [renderer, preset]
+			)
+	check(
+		game.default_graphics("Android", false) == "fast",
+		"Android defaults to Fast without GPU classification"
+	)
+	check(
+		game.default_graphics("Linux", true) == "fast",
+		"desktop integrated GPUs retain Fast default"
+	)
+	check(
+		game.default_graphics("Linux", false) == "high", "desktop discrete GPUs retain High default"
+	)
+	check(
+		game.simulation.digest() == before, "renderer-aware presets never change simulation state"
 	)
 	view.set_graphics("unknown")
 	check(view.graphics == "high", "an unknown preset keeps a valid preset")

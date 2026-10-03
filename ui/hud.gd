@@ -2,8 +2,24 @@ extends Control
 ## Controls and causal account. All state arrives from the game binding.
 signal command(name: String)
 signal person_chosen(id: int)
+signal modal_changed
 const S = preload("res://ui/style.gd")
 const Layout = preload("res://ui/layout.gd")
+const MENU_ACTIONS := [
+	["people", "People"],
+	["next", "Next person"],
+	["focus", "Close view of person"],
+	["overview", "Whole valley"],
+	["speed", "Change speed"],
+	["restart", "Restart same seed"],
+	["replay", "Replay my last attempt"],
+	["save", "Save replay"],
+	["mute", "Mute sound"],
+	["motion", "Reduce motion"],
+	["graphics", "Faster graphics"],
+	["help", "Controls and story"],
+	["quit", "Quit"]
+]
 var header: PanelContainer
 var bar: PanelContainer
 var inspector: PanelContainer
@@ -18,7 +34,7 @@ var hint: Label
 var status: Label
 var status_time := 0.0
 var buttons: Dictionary = {}
-var menu: MenuButton
+var menu: Button
 var secondary: HBoxContainer
 var action_row: HBoxContainer
 var sheet: Control
@@ -29,6 +45,8 @@ var last_account := ""
 var layout_plan: Dictionary = {}
 var muted := false
 var reduced_motion := false
+var faster_graphics := false
+var touch_controls := OS.get_name() == "Android"
 
 
 func _ready() -> void:
@@ -73,7 +91,7 @@ func _build_header() -> void:
 	row.add_child(readout)
 	var info := S.button("?", func(): command.emit("help"))
 	info.tooltip_text = "Controls and the story"
-	info.custom_minimum_size.x = 44
+	info.custom_minimum_size.x = S.TOUCH
 	row.add_child(info)
 
 
@@ -101,7 +119,7 @@ func _build_bar() -> void:
 		row.add_child(button)
 		buttons[name] = button
 	var play := S.button("▶", func(): command.emit("pause"))
-	play.custom_minimum_size.x = 44
+	play.custom_minimum_size.x = S.TOUCH
 	play.tooltip_text = "Space · Pause or resume time"
 	row.add_child(play)
 	buttons.pause = play
@@ -113,27 +131,9 @@ func _build_bar() -> void:
 		var button := S.button(item[1], func(): command.emit(name))
 		secondary.add_child(button)
 		buttons[name] = button
-	menu = MenuButton.new()
-	menu.text = "…"
+	menu = S.button("…", show_controls)
 	menu.tooltip_text = "People, time, replay, sound, and controls"
-	menu.custom_minimum_size = Vector2(44, 44)
 	row.add_child(menu)
-	var popup := menu.get_popup()
-	popup.add_item("People", 0)
-	popup.add_item("Next person     Tab", 9)
-	popup.add_item("Close view of person     C", 10)
-	popup.add_item("Whole valley     V", 11)
-	popup.add_item("Change speed     F", 1)
-	popup.add_item("Restart same seed     R", 2)
-	popup.add_item("Replay my last attempt     P", 3)
-	popup.add_item("Save replay", 4)
-	popup.add_separator()
-	popup.add_check_item("Mute sound     M", 5)
-	popup.add_check_item("Reduce motion", 6)
-	popup.add_check_item("Faster graphics", 12)
-	popup.add_item("Controls and story     H", 7)
-	popup.add_item("Quit", 8)
-	popup.id_pressed.connect(_menu_command)
 	hint = S.label("Look at a person. Learn what they believe.", 14, S.MUTED)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(hint)
@@ -144,23 +144,32 @@ func _build_bar() -> void:
 	status.z_index = 20
 
 
-func _menu_command(id: int) -> void:
-	var names := [
-		"people",
-		"speed",
-		"restart",
-		"replay",
-		"save",
-		"mute",
-		"motion",
-		"help",
-		"quit",
-		"next",
-		"focus",
-		"overview",
-		"graphics"
-	]
-	command.emit(names[id])
+func show_controls() -> void:
+	var column := _sheet("Valley controls")
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.follow_focus = true
+	column.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	for item in MENU_ACTIONS:
+		var name: String = item[0]
+		var button := S.button(
+			item[1],
+			func():
+				close_sheet()
+				command.emit(name)
+		)
+		button.name = name
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if name in ["mute", "motion", "graphics"]:
+			button.toggle_mode = true
+			button.set_pressed_no_signal(
+				muted if name == "mute" else reduced_motion if name == "motion" else faster_graphics
+			)
+		list.add_child(button)
 
 
 func _build_inspector() -> void:
@@ -194,7 +203,7 @@ func _build_inspector() -> void:
 
 
 func arrange() -> void:
-	if not is_instance_valid(header):
+	if not is_instance_valid(header) or size.x <= 0 or size.y <= 0:
 		return
 	layout_plan = Layout.plan(size, selected >= 0)
 	_place(header, layout_plan.header)
@@ -217,6 +226,12 @@ func arrange() -> void:
 			"margin_" + side, 4 if layout_plan.compact else 12
 		)
 		bar_margin.add_theme_constant_override("margin_" + side, 4 if layout_plan.compact else 8)
+	for button in [buttons.observe, buttons.rain, buttons.food, buttons.pause, menu]:
+		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+			var style: StyleBox = button.get_theme_stylebox(state).duplicate()
+			style.content_margin_left = 8 if size.x < 420 else 12
+			style.content_margin_right = style.content_margin_left
+			button.add_theme_stylebox_override(state, style)
 	buttons.rain.text = "Rain 2" if size.x < 420 else "Rain · 2"
 	buttons.food.text = "Food 1" if size.x < 420 else "Food · 1"
 	hint.visible = not layout_plan.compact
@@ -226,9 +241,17 @@ func arrange() -> void:
 	status.position = Vector2(8, layout_plan.bar.position.y - 32)
 	status.size = Vector2(maxf(1, size.x - 16), 28)
 	if is_instance_valid(sheet_box):
-		var width := minf(620, size.x - 20)
-		var height := minf(600, size.y - 20)
+		var inset := 8.0 if size.y < Layout.SHORT else 20.0
+		var width := minf(620, size.x - inset)
+		var height := minf(600, size.y - inset)
 		_place(sheet_box, Rect2((size - Vector2(width, height)) / 2, Vector2(width, height)))
+		var padding: MarginContainer = sheet_box.get_child(0)
+		var column: VBoxContainer = padding.get_child(0)
+		column.add_theme_constant_override("separation", 4 if size.y < Layout.SHORT else 12)
+		for side in ["left", "right", "top", "bottom"]:
+			padding.add_theme_constant_override(
+				"margin_" + side, 4 if size.y < Layout.SHORT else 20
+			)
 
 
 func _place(control: Control, rect: Rect2) -> void:
@@ -266,7 +289,11 @@ func refresh(
 		"rain": "Rain · 2 power. Cover a village center to restore its water and crops.",
 		"food": "Click to leave food. It costs 1 power. A gift can mean different things."
 	}
-	hint.text = hints[mode]
+	hint.text = (
+		"Tap: select or give   ·   Drag: orbit   ·   Two fingers: pan and pinch"
+		if touch_controls and mode == "observe"
+		else hints[mode]
+	)
 	if selected >= 0 and selected < value.get("people", []).size():
 		_refresh_account(value.people[selected])
 
@@ -351,10 +378,25 @@ func toast(text: String) -> void:
 
 func close_sheet() -> void:
 	if is_instance_valid(sheet):
-		remove_child(sheet)
+		# A touch release can close its own button's sheet during GUI dispatch.
+		# Hide now, but keep that node in the tree until dispatch has finished.
+		sheet.hide()
 		sheet.queue_free()
 		sheet = null
 		sheet_box = null
+		modal_changed.emit()
+
+
+func blocks_world_input(at: Vector2) -> bool:
+	if sheet_open():
+		return true
+	for control in [header, bar, inspector]:
+		if not control.visible:
+			continue
+		var local: Vector2 = control.get_global_transform_with_canvas().affine_inverse() * at
+		if Rect2(Vector2.ZERO, control.size).has_point(local):
+			return true
+	return false
 
 
 func sheet_open() -> bool:
@@ -364,6 +406,7 @@ func sheet_open() -> bool:
 func _sheet(title_text: String) -> VBoxContainer:
 	close_sheet()
 	sheet = Control.new()
+	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(sheet)
 	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sheet.z_index = 50
@@ -388,6 +431,7 @@ func _sheet(title_text: String) -> VBoxContainer:
 	row.add_child(label)
 	row.add_child(S.button("×", func(): command.emit("close")))
 	arrange()
+	modal_changed.emit()
 	return column
 
 
@@ -406,7 +450,12 @@ func show_help(intro: bool, seed_value: int) -> void:
 		+ "[color=#89c6d0]Try this[/color]\nWhen people approach the shrine, leave food nearby. "
 		+ "Look at a witness. Watch the story travel. "
 		+ "Then restart and help both villages, or do nothing.\n\n"
-		+ "[color=#89c6d0]Controls[/color]\n1  Look and select a person\n"
+		+ "[color=#89c6d0]Touch controls[/color]\n"
+		+ "Tap a person to select them. Choose Rain or Food, then tap a place to give.\n"
+		+ "Drag one finger to orbit and tilt. Drag two fingers to pan. Pinch to zoom.\n"
+		+ "The bottom buttons pause time and choose Look, Rain, or Food. "
+		+ "The … menu has every other action, including close views and the whole valley.\n\n"
+		+ "[color=#89c6d0]Keyboard and mouse[/color]\n1  Look and select a person\n"
 		+ "2  Rain, then click a place · costs 2\n3  Food, then click a place · costs 1\n"
 		+ "Wheel  Zoom from person to landscape\nMiddle drag  Orbit and tilt\n"
 		+ "Right drag or WASD  Pan\nQ / E  Orbit\nC  Close view of a person\nV  Whole valley\n"
@@ -483,7 +532,4 @@ func show_ending(summary: Dictionary) -> void:
 func update_toggles(sound_muted: bool, still: bool, faster: bool = false) -> void:
 	muted = sound_muted
 	reduced_motion = still
-	var popup := menu.get_popup()
-	popup.set_item_checked(popup.get_item_index(5), muted)
-	popup.set_item_checked(popup.get_item_index(6), reduced_motion)
-	popup.set_item_checked(popup.get_item_index(12), faster)
+	faster_graphics = faster

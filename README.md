@@ -20,6 +20,14 @@ The Linux build contains a Godot resource pack, a launcher, font and character l
 
 See [controls and experiments](docs/controls.md) before the first run. Normal play takes about five minutes. Use F for faster time and Space to pause.
 
+## Android
+
+The Android prototype keeps the 3D game and adds one-finger orbit, two-finger pan/pinch, tap actions, safe-area layout, and density-scaled controls. Every action is available without a keyboard. It uses Godot's Mobile renderer and starts with Faster graphics.
+
+Build the signed ARM64 APK on aka with `./tools/build-android-on-host.py --host simonwjackson@aka` from a clean committed checkout after toolchain preparation. The output is `build/android/signs-of-rain.apk`. See [installation, reproduction, and device-test limits](docs/android.md).
+
+The package and desktop Mobile rendering are checked. No Android phone was connected, so installation, physical touch, folding, heat, and phone frame rate remain unverified. The Android build does not replace the installed Linux launcher.
+
 ## Develop and rebuild
 
 The tested engine is:

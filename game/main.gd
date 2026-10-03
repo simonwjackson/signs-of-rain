@@ -35,6 +35,9 @@ var tick_on_restart := 0
 
 
 func _ready() -> void:
+	if OS.get_name() == "Android":
+		_apply_android_density()
+		get_window().dpi_changed.connect(_apply_android_density)
 	var graphics := _saved_graphics()
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--seed="):
@@ -52,9 +55,12 @@ func _ready() -> void:
 	valley.set_graphics(graphics)
 	valley.chosen.connect(_world_input)
 	hud = Hud.new()
+	hud.size = size
 	add_child(hud)
-	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.command.connect(_command)
+	hud.modal_changed.connect(_sync_input_gate)
+	if OS.get_name() == "Android":
+		get_tree().quit_on_go_back = false
 	hud.person_chosen.connect(_select)
 	sound = Sound.new()
 	add_child(sound)
@@ -68,11 +74,26 @@ func _ready() -> void:
 	_emit_evidence()
 
 
+## Android reports screen pixels; UI controls use density-independent canvas units.
+func _apply_android_density() -> void:
+	get_window().content_scale_factor = Layout.density_scale(DisplayServer.screen_get_dpi())
+
+
 func _arrange() -> void:
-	var plan := Layout.plan(size, selected >= 0)
-	valley.position = plan.world.position
+	var usable := Rect2(Vector2.ZERO, size)
+	if OS.get_name() == "Android":
+		var to_screen := get_viewport().get_screen_transform() * get_global_transform_with_canvas()
+		usable = Layout.safe_rect(size, DisplayServer.get_display_safe_area(), to_screen)
+	var plan := Layout.plan(usable.size, selected >= 0)
+	valley.position = usable.position + plan.world.position
 	valley.size = plan.world.size
+	hud.position = usable.position
+	hud.size = usable.size
 	hud.arrange()
+
+
+func _sync_input_gate() -> void:
+	valley.camera_input_enabled = not hud.sheet_open()
 
 
 func _snapshot() -> Dictionary:
@@ -97,7 +118,7 @@ func _refresh() -> void:
 	valley.mode = mode
 	valley.motion = not reduced_motion and not paused
 	valley.effects_static = reduced_motion
-	valley.camera_input_enabled = not hud.sheet_open() and not hud.menu.get_popup().visible
+	_sync_input_gate()
 	hud.refresh(snapshot, selected, mode, paused, speed, replaying)
 
 
@@ -247,7 +268,11 @@ func _command(name: String) -> void:
 	_emit_evidence()
 
 
-## Default to faster graphics on integrated GPUs; a saved choice always wins.
+## Mobile starts faster. A saved choice always wins on every platform.
+static func default_graphics(platform: String, integrated: bool) -> String:
+	return "fast" if platform == "Android" or integrated else "high"
+
+
 func _saved_graphics() -> String:
 	var stored := ConfigFile.new()
 	if stored.load("user://settings.cfg") == OK:
@@ -255,7 +280,7 @@ func _saved_graphics() -> String:
 	var integrated := (
 		RenderingServer.get_video_adapter_type() == RenderingDevice.DEVICE_TYPE_INTEGRATED_GPU
 	)
-	return "fast" if integrated else "high"
+	return default_graphics(OS.get_name(), integrated)
 
 
 func _save_graphics(preset: String) -> void:
@@ -328,6 +353,9 @@ func _save_replay() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_route_touch(event)
+		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var keys := {
@@ -344,12 +372,7 @@ func _input(event: InputEvent) -> void:
 		KEY_V: "overview"
 	}
 	if event.keycode == KEY_ESCAPE:
-		if hud.sheet_open():
-			_command("close")
-		elif selected >= 0:
-			_select(-1)
-		else:
-			_command("observe")
+		_back()
 	elif hud.sheet_open():
 		if event.keycode == KEY_ENTER and intro:
 			_command("begin")
@@ -361,6 +384,51 @@ func _input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Screen events arrive in logical viewport coordinates. Transform into
+## valley-local canvas units here; Valley converts them to 3D viewport pixels.
+func _route_touch(event: InputEvent) -> void:
+	if hud.sheet_open():
+		valley.cancel_camera_input()
+		return
+	if event is InputEventScreenTouch and event.pressed:
+		if hud.blocks_world_input(event.position):
+			valley.cancel_camera_input()
+			return
+		var bounds := Rect2(Vector2.ZERO, valley.size)
+		var at: Vector2 = (
+			valley.get_global_transform_with_canvas().affine_inverse() * event.position
+		)
+		if not bounds.has_point(at):
+			return
+	if event is InputEventScreenTouch and not event.pressed:
+		if hud.blocks_world_input(event.position):
+			# Finish an owned gesture, but do not cast/select behind a HUD surface.
+			# Keep the original GUI event intact for contacts that started there.
+			var release := event.duplicate() as InputEventScreenTouch
+			release.canceled = true
+			event = release
+	var local: Vector2 = valley.get_global_transform_with_canvas().affine_inverse() * event.position
+	if valley.touch_input(event, local):
+		hud.touch_controls = true
+		get_viewport().set_input_as_handled()
+
+
+func _back() -> void:
+	if hud.sheet_open():
+		_command("close")
+	elif selected >= 0:
+		_select(-1)
+	else:
+		_command("observe")
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(hud):
+		_back()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_instance_valid(valley):
+		valley.cancel_camera_input()
 
 
 func _json_value(value: Variant) -> Variant:

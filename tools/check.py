@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 GODOT = os.environ.get(
@@ -24,16 +25,25 @@ commands = [
     [GODOT, "--headless", "--path", ".", "--script", "tests/view_interaction_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/picking_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/graphics_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/touch_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/touch_layout_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/density_test.gd"],
     [sys.executable, "tests/operations_test.py"],
+    [sys.executable, "tests/android_build_test.py"],
     [GD + "gdformat", "--check", "game", "ui", "sim", "tests"],
     [GD + "gdlint", "game", "ui", "sim", "tests"],
     [RUFF, "check", "tools", "tests"],
     [RUFF, "format", "--check", "tools", "tests"],
 ]
+# Engine tests must not read or change the player's settings or editor profile.
+private = tempfile.TemporaryDirectory(prefix="signs-check-")
+environment = dict(os.environ)
+for kind in ("CONFIG", "DATA", "CACHE"):
+    environment["XDG_" + kind + "_HOME"] = str(Path(private.name) / kind.lower())
 results = []
 for command in commands:
     result = subprocess.run(
-        command, cwd=ROOT, capture_output=True, text=True, timeout=90
+        command, cwd=ROOT, env=environment, capture_output=True, text=True, timeout=90
     )
     print(result.stdout)
     print(result.stderr)
@@ -51,6 +61,7 @@ for command in commands:
             "stderr": result.stderr,
         }
     )
+private.cleanup()
 report = ROOT / "verification/local-checks.json"
 report.parent.mkdir(exist_ok=True)
 report.write_text(json.dumps(results, indent=2) + "\n")

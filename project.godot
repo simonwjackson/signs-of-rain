@@ -3,6 +3,7 @@ config_version=5
 
 [application]
 config/name="Signs of Rain"
+config/icon="res://assets/icon.svg"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="signs-of-rain"
 run/main_scene="res://game/main.tscn"
@@ -16,6 +17,8 @@ window/size/window_width_override=1440
 window/size/window_height_override=900
 window/size/min_width=320
 window/size/min_height=240
+window/size/resizable=true
+window/handheld/orientation=6
 window/stretch/mode="disabled"
 window/stretch/scale_mode="fractional"
 
@@ -24,9 +27,12 @@ renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 anti_aliasing/quality/msaa_3d=2
 lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/size.mobile=2048
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=1
 environment/defaults/default_clear_color=Color(0.071, 0.153, 0.153, 1)
 textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true
 
 [audio]
 driver/enable_input=false

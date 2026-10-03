@@ -123,7 +123,49 @@
     ],
     "passed": true,
     "exit": 0,
-    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nGRAPHICS: 20 checks, 0 failures\n",
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nGRAPHICS: 36 checks, 0 failures\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--script",
+      "tests/touch_test.gd"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nTOUCH: 52 checks, 0 failures\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--script",
+      "tests/touch_layout_test.gd"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nTOUCH LAYOUT: 142 checks, 0 failures\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--script",
+      "tests/density_test.gd"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nDENSITY: 10 checks, 0 failures\n",
     "stderr": ""
   },
   {
@@ -134,7 +176,17 @@
     "passed": true,
     "exit": 0,
     "stdout": "",
-    "stderr": "test_complete_copy_and_repeat_deploy (__main__.OperationsTest.test_complete_copy_and_repeat_deploy) ... ok\ntest_copied_bytes_checked_before_publication (__main__.OperationsTest.test_copied_bytes_checked_before_publication) ... ok\ntest_input_without_explicit_private_socket_refused (__main__.OperationsTest.test_input_without_explicit_private_socket_refused) ... ok\ntest_interrupted_old_copy_never_becomes_current (__main__.OperationsTest.test_interrupted_old_copy_never_becomes_current) ... ok\ntest_outside_manifest_member_rejected (__main__.OperationsTest.test_outside_manifest_member_rejected) ... ok\ntest_unresponsive_owned_child_gets_bounded_kill (__main__.OperationsTest.test_unresponsive_owned_child_gets_bounded_kill) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.329s\n\nOK\n"
+    "stderr": "test_complete_copy_and_repeat_deploy (__main__.OperationsTest.test_complete_copy_and_repeat_deploy) ... ok\ntest_copied_bytes_checked_before_publication (__main__.OperationsTest.test_copied_bytes_checked_before_publication) ... ok\ntest_input_without_explicit_private_socket_refused (__main__.OperationsTest.test_input_without_explicit_private_socket_refused) ... ok\ntest_interrupted_old_copy_never_becomes_current (__main__.OperationsTest.test_interrupted_old_copy_never_becomes_current) ... ok\ntest_outside_manifest_member_rejected (__main__.OperationsTest.test_outside_manifest_member_rejected) ... ok\ntest_unresponsive_owned_child_gets_bounded_kill (__main__.OperationsTest.test_unresponsive_owned_child_gets_bounded_kill) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.220s\n\nOK\n"
+  },
+  {
+    "command": [
+      "/nix/store/m1fw8l8y9ycxh5dzispbb7cwl6rra14l-python3-3.13.12/bin/python3",
+      "tests/android_build_test.py"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "",
+    "stderr": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.006s\n\nOK\n"
   },
   {
     "command": [
@@ -147,7 +199,7 @@
     ],
     "passed": true,
     "exit": 0,
-    "stdout": "19 files would be left unchanged\n",
+    "stdout": "24 files would be left unchanged\n",
     "stderr": ""
   },
   {
@@ -185,7 +237,7 @@
     ],
     "passed": true,
     "exit": 0,
-    "stdout": "15 files already formatted\n",
+    "stdout": "21 files already formatted\n",
     "stderr": ""
   }
 ]

@@ -12,7 +12,7 @@ const SEDGE := Color("9a647a")
 const ACCENT := Color("ddc875")
 const BODY = preload("res://assets/fonts/Lato-Regular.ttf")
 const DISPLAY = preload("res://assets/fonts/Alegreya-Regular.ttf")
-const TOUCH := 44.0
+const TOUCH := 48.0
 
 
 static func box(color: Color, border: Color = Color.TRANSPARENT, radius: int = 8) -> StyleBoxFlat:
@@ -48,9 +48,6 @@ static func theme() -> Theme:
 	panel_style.content_margin_top = 0
 	panel_style.content_margin_bottom = 0
 	result.set_stylebox("panel", "PanelContainer", panel_style)
-	result.set_stylebox("panel", "PopupMenu", box(INK, SLATE))
-	result.set_constant("v_separation", "PopupMenu", 18)
-	result.set_font_size("font_size", "PopupMenu", 18)
 	result.set_stylebox("normal", "LineEdit", box(INK.lightened(0.1), SLATE))
 	result.set_color("font_color", "LineEdit", PAPER)
 	return result
@@ -74,7 +71,7 @@ static func heading(text: String, font_size: int = 32) -> Label:
 static func button(text: String, callback: Callable) -> Button:
 	var result := Button.new()
 	result.text = text
-	result.custom_minimum_size.y = TOUCH
+	result.custom_minimum_size = Vector2(TOUCH, TOUCH)
 	result.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	result.pressed.connect(callback)
 	return result

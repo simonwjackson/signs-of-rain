@@ -2,7 +2,7 @@
 
 The delivered experience is the 3D rebuild, not the earlier flat-map prototype. The model stays the same. Tests run against the real Godot implementation and the actual installed game.
 
-Verified: 344 local checks and 37 target checks passed. The 80.981-second recording contains 2,429 decoded video frames at 1280×800. Its recorded pack SHA-256 is `827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b`. A later [export boundary correction](pack-report.md) removes development captures without changing game code.
+Historical Linux evidence: 344 local checks and 37 target checks passed. The current local source results are in `local-checks.json`; the older target reports are not Android acceptance. The 80.981-second recording contains 2,429 decoded video frames at 1280×800. Its recorded pack SHA-256 is `827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b`. A later [export boundary correction](pack-report.md) removes development captures without changing game code.
 
 ## Local checks
 
@@ -17,10 +17,21 @@ Run `./tools/check.py`. The command imports the real project, runs engine tests 
 | Terrain | Deterministic heights without simulation RNG, crop/well display, wetness reset, and actual heightfield collision. |
 | Interaction | Paused casts update 3D resources, modal/restart cancels camera drag, target colors track mode, and opaque buildings/terrain block person picking. |
 | Operations | Verified atomic release copies, incomplete-copy rejection, traversal rejection, shared-seat input refusal, and bounded termination of a real resistant child. |
+| Android input | Real screen-event taps, one/two/three-finger arbitration, camera gestures without accidental gifts, HUD occlusion on release, modal/focus/resize cancellation, and Android Back policy. |
+| Android layout | Folded/unfolded/short containers, 48-unit controls, overflow sheets, and physical safe-area scaling/translation. A 3× window tests physical-resolution rendering and input picking with a logical UI. |
+| Android packaging | Staging isolation, path traversal rejection, APK runtime-resource boundaries, ARM64 ELF contents, and 16 KiB alignment. Artifact signatures and manifests are checked on the actual APK, not inferred from fixture tests. |
 
 Exact commands and results are in `local-checks.json`. The build also inspects the actual exported pack, requiring runtime resources and rejecting development data. `simulation-results.json` and `simulation-report.md` contain independent seeded strategy comparisons and complete-state digests. They are not substitutes for real-device play.
 
-## Actual aka acceptance
+## Android evidence
+
+The signed APK is exported on aka from the pinned official Godot 4.6.1 Android templates. `build/android/manifest.json` records its exact source commit, build host, certificate, signature verification, ARM64 ELF load alignments, ZIP alignment, manifest, and resource boundary. No Android permissions are requested. Signing credentials stay outside the checkout and APK.
+
+`./tools/test-mobile-render.py` uses an owned private compositor and the actual Mobile renderer on aka's RX 7900 XT. It captures a 360×720 folded shape, 720×900 unfolded shape, a 1848×2448 window at 3× UI density, and a 1280×300 short shape. Images and metadata remain in `artifacts/android-render/`. The report checks that BW2/Korri processes stayed running. These captures establish desktop Mobile rendering and layout, not Android runtime compatibility or performance.
+
+No Android phone was connected. APK installation, physical multitouch, fold transitions, safe-area reporting, phone FPS/heat, and ARM replay determinism remain unverified. See [the Android build and installation instructions](../docs/android.md).
+
+## Historical aka Linux acceptance
 
 Run `ssh -tt simonwjackson@aka .local/share/signs-of-rain/tools/target-test.py` after deployment. This starts an independent Sway compositor and a named PulseAudio sink. It never injects events into the Korri display. It closes only its own game, recorder, input device, compositor, and sink.
 
@@ -55,4 +66,4 @@ The remote originals are under `~/.local/share/signs-of-rain/lab/`. The collecti
 
 This is a bounded prototype. No campaign, combat, creature, mortality, obstacle navigation, dynamic trust, invented report facts, facial animation, cloth physics, or foot/grip IK. Characters can slide or cross scenery on arbitrary routes. The camera stays above terrain but can pass through buildings. Water pools are visual scenery; the common well level is the resource-backed water surface. Only the latest rain footprint changes ground wetness.
 
-Determinism is verified with the supplied Godot 4.6.1 build, not across engine versions or CPU architectures. Mouse/keyboard are verified. Controller, touch, screen-reader play, other operating systems, and human sound-quality evaluation are not.
+Determinism is verified with the supplied Godot 4.6.1 build, not across engine versions or CPU architectures. Mouse/keyboard and engine-routed screen events are verified. Physical phone touch, Android execution, controller, screen-reader play, other operating systems, and human sound-quality evaluation are not.

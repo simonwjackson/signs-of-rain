@@ -1,5 +1,5 @@
 extends RefCounted
-## One policy for width and height. Actions survive in a window-level menu.
+## One policy for width and height. Actions survive in a window-level sheet.
 const WIDE := 1050.0
 const SHORT := 500.0
 const HEADER := 76.0
@@ -7,6 +7,22 @@ const COMPACT_HEADER := 56.0
 const BAR := 82.0
 const COMPACT_BAR := 58.0
 const PANEL := 330.0
+
+
+## Android's baseline density is 160 DPI. Unknown/low DPI keeps readable 1x controls.
+static func density_scale(dpi: int) -> float:
+	return maxf(1.0, float(dpi) / 160.0)
+
+
+## Android gives a physical screen rectangle. Convert it to this canvas once,
+## including viewport scaling, then intersect it with the actual container.
+static func safe_rect(size: Vector2, physical: Rect2i, canvas_to_screen: Transform2D) -> Rect2:
+	var bounds := Rect2(Vector2.ZERO, size)
+	if not physical.has_area():
+		return bounds
+	var available: Rect2 = canvas_to_screen.affine_inverse() * Rect2(physical)
+	var clipped := available.intersection(bounds)
+	return clipped if clipped.has_area() else bounds
 
 
 static func plan(size: Vector2, has_panel: bool) -> Dictionary:

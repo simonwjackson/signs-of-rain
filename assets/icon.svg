@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Colours reuse ui/style.gd: ink, slate, rain, wheat, and paper. -->
+  <rect width="256" height="256" rx="52" fill="#123333"/>
+  <path d="M24 204 76 144 120 188 170 122 232 204V232H24Z" fill="#416260"/>
+  <path d="M58 109c-17 0-27-11-27-25 0-15 11-26 26-27 6-23 24-36 47-36 21 0 38 11 45 29 7-5 15-8 24-8 24 0 42 18 42 40 0 17-12 27-28 27Z" fill="#edf0da"/>
+  <path d="m83 130-13 26m58-26-13 26m58-26-13 26" fill="none" stroke="#89c6d0" stroke-width="11" stroke-linecap="round"/>
+  <path d="M104 209v-21l17-13 17 13v21Z" fill="#ddd396"/>
+  <path d="M117 209v-14h8v14" fill="#123333"/>
+</svg>

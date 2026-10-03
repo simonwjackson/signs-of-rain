@@ -4,7 +4,19 @@ You have eight power. Rain costs two. Food costs one. Power does not refill.
 
 The drought ends after seven days, about 4 minutes 40 seconds at normal speed. You can pause, act while paused, or watch without intervening. At the ending, close the account to inspect people.
 
-| Control | Action |
+| Touch control | Action |
+| --- | --- |
+| Tap | Select a person in Look mode. Choose Rain or Food, then tap the terrain to give. A gift happens on release, not on press. |
+| Drag one finger | Orbit and tilt. A camera drag never becomes a gift when you lift the finger. |
+| Drag two fingers | Pan across the terrain. |
+| Pinch two fingers | Zoom continuously between face, village, and landscape scale. |
+| Bottom buttons | Choose Look, Rain, or Food. Pause or resume time. |
+| … menu | Open the scrollable controls sheet. It contains People, next person, close view, whole valley, speed, restart, replay, save, sound, motion, graphics, guide, and Quit. |
+| Android Back | Close a sheet or inspector, or return to Look mode. Quit remains in the menu. |
+
+The controls use the available container after Android's safe-area inset. Touch targets are at least 48 logical pixels. Screen resizing cancels a gesture instead of interpreting its old coordinates in the new layout. Guides and controls sheets cancel camera gestures immediately. Time still runs unless you pause it.
+
+| Mouse or keyboard control | Action |
 | --- | --- |
 | Wheel | Zoom continuously between face, village, and landscape scale. |
 | Middle drag | Orbit and tilt the 3D camera. |
@@ -46,6 +58,6 @@ The valley contains 24 rule-driven people and four starting history patterns. Tr
 
 Resources and beliefs interact, but this is not a calibrated survival model or a theory of religion. A kind gift can also cause travel and offerings that reduce harvesting. There is no single moral score or guaranteed best strategy.
 
-Faster graphics renders the 3D view at 67% resolution with FSR upscaling, and lower on very large windows (at least 45%, about 1.4 megapixels). It also turns off 4x MSAA, indirect light, and volumetric fog, and uses two shadow cascades. It starts on automatically on integrated GPUs; the menu choice is saved. Launch with `-- --graphics=high` or `-- --graphics=fast` to override it once. The simulation is identical in both modes.
+Faster graphics renders the 3D view at 67% resolution, and lower on very large windows at a minimum of 45%, about 1.4 megapixels. Forward+ uses FSR upscaling. Mobile and Compatibility use bilinear upscaling. Faster graphics also turns off 4x MSAA, indirect light, and volumetric fog, and uses two shadow cascades. Unsupported lighting stays off in both presets on each renderer. Android and desktop integrated GPUs default to Faster graphics. The menu choice is saved. Launch with `-- --graphics=high` or `-- --graphics=fast` to override it once. The simulation is identical in both modes.
 
-Desktop mouse and keyboard are the supported controls. Small windows keep the controls but make the world harder to read; use the People menu there, then close the inspector to see the focused person. Camera clearance prevents terrain penetration, but does not prevent passing through architecture. Controller, touch, and screen-reader play are not verified. Seeded results are verified on the supplied Godot 4.6.1 runtime, not across engine versions or CPU architectures.
+Godot scene tests cover mouse, keyboard, real screen-touch event routing, gesture conflicts, and container resizing. These checks do not establish phone performance or physical touchscreen usability. Small windows keep the controls but make the world harder to read. Use the People menu there, then close the inspector to see the focused person. Camera clearance prevents terrain penetration, but does not prevent passing through architecture. Controller and screen-reader play are not verified. Seeded results are verified on the supplied Godot 4.6.1 runtime, not across engine versions or CPU architectures.

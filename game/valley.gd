@@ -4,6 +4,7 @@ signal chosen(point: Vector2, button: int)
 const Terrain = preload("res://game/terrain.gd")
 const Villager = preload("res://game/villager.gd")
 const GodCamera = preload("res://game/god_camera.gd")
+const TouchCamera = preload("res://game/touch_camera.gd")
 const S = preload("res://ui/style.gd")
 const FAST_PIXEL_BUDGET := 1400000.0
 var state: Dictionary = {}
@@ -11,7 +12,12 @@ var selected := -1
 var mode := "observe"
 var motion := true
 var effects_static := false
-var camera_input_enabled := true
+var camera_input_enabled := true:
+	set(value):
+		camera_input_enabled = value
+		if not value:
+			cancel_camera_input()
+var touch = TouchCamera.new()
 var scale_factor := 1.0
 var viewport := SubViewport.new()
 var world := Node3D.new()
@@ -90,7 +96,10 @@ func _ready() -> void:
 
 
 func _resize() -> void:
-	viewport.size = Vector2i(maxi(2, roundi(size.x)), maxi(2, roundi(size.y)))
+	cancel_camera_input()
+	var to_screen := get_viewport().get_screen_transform() * get_global_transform_with_canvas()
+	var pixels := size * to_screen.get_scale().abs()
+	viewport.size = Vector2i(maxi(2, roundi(pixels.x)), maxi(2, roundi(pixels.y)))
 	_apply_render_scale()
 
 
@@ -123,10 +132,11 @@ func _lighting() -> void:
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.0
 	environment.tonemap_white = 5.0
-	environment.ssao_enabled = true
+	var renderer := RenderingServer.get_current_rendering_method()
+	environment.ssao_enabled = renderer != "mobile"
 	environment.ssao_radius = 1.4
 	environment.ssao_intensity = 1.7
-	environment.ssil_enabled = true
+	environment.ssil_enabled = renderer == "forward_plus"
 	environment.ssil_intensity = .6
 	environment.glow_enabled = true
 	environment.glow_intensity = .28
@@ -135,7 +145,7 @@ func _lighting() -> void:
 	environment.fog_light_color = Color("b8c8be")
 	environment.fog_density = .0007
 	environment.fog_aerial_perspective = .25
-	environment.volumetric_fog_enabled = true
+	environment.volumetric_fog_enabled = renderer == "forward_plus"
 	environment.volumetric_fog_density = .0007
 	environment.volumetric_fog_albedo = Color("d1d8bf")
 	environment.volumetric_fog_length = 220
@@ -156,18 +166,20 @@ func _lighting() -> void:
 	world.add_child(sunlight)
 
 
-## Rendering cost only. "fast" keeps shadows, fog, and SSAO for depth, and drops
-## the costly passes integrated GPUs struggle with at high resolution.
-func set_graphics(preset: String) -> void:
+## The render method decides which effects exist. Graphics only changes cost.
+func set_graphics(preset: String, renderer: String = "") -> void:
 	graphics = "fast" if preset == "fast" else "high"
+	var method := RenderingServer.get_current_rendering_method() if renderer == "" else renderer
+	var forward := method == "forward_plus"
 	var fast := graphics == "fast"
 	viewport.msaa_3d = Viewport.MSAA_DISABLED if fast else Viewport.MSAA_4X
 	viewport.scaling_3d_mode = (
-		Viewport.SCALING_3D_MODE_FSR if fast else Viewport.SCALING_3D_MODE_BILINEAR
+		Viewport.SCALING_3D_MODE_FSR if fast and forward else Viewport.SCALING_3D_MODE_BILINEAR
 	)
 	_apply_render_scale()
-	environment.ssil_enabled = not fast
-	environment.volumetric_fog_enabled = not fast
+	environment.ssao_enabled = method != "mobile"
+	environment.ssil_enabled = not fast and forward
+	environment.volumetric_fog_enabled = not fast and forward
 	sunlight.directional_shadow_mode = (
 		DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 		if fast
@@ -183,8 +195,7 @@ func set_state(value: Dictionary) -> void:
 func reset() -> void:
 	last_tick = -1
 	follow_id = -1
-	dragging = 0
-	drag_travel = 0.0
+	cancel_camera_input()
 	if is_instance_valid(terrain):
 		terrain.set_wetness(Vector2.ZERO, 0.0)
 	for person in people.values():
@@ -205,9 +216,6 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(rig):
 		return
 	clock += delta
-	if not camera_input_enabled:
-		dragging = 0
-		drag_travel = 0.0
 	for person in state.get("people", []):
 		var id: int = person.id
 		var at := world_position(person.pos)
@@ -250,7 +258,8 @@ func _process(delta: float) -> void:
 	if follow_id >= 0 and people.has(follow_id):
 		rig.follow(people[follow_id].focus_point())
 	rig.input_enabled = camera_input_enabled
-	rig.advance(delta)
+	if camera_input_enabled:
+		rig.advance(delta)
 	scale_factor = maxf(.2, 50.0 / maxf(rig.distance, .1))
 	if int(state.get("tick", 0)) != last_tick:
 		last_tick = int(state.get("tick", 0))
@@ -287,14 +296,23 @@ func simulation_position(point: Vector3) -> Vector2:
 
 
 func to_screen(point: Vector2) -> Vector2:
-	return (
-		global_position + rig.camera.unproject_position(world_position(point) + Vector3(0, .08, 0))
-	)
+	var pixel: Vector2 = rig.camera.unproject_position(world_position(point) + Vector3(0, .08, 0))
+	return get_global_transform_with_canvas() * (pixel * size / Vector2(viewport.size))
+
+
+## Input stays in canvas units; only camera projection reads physical viewport pixels.
+func viewport_point(at: Vector2) -> Vector2:
+	return at * Vector2(viewport.size) / size.max(Vector2.ONE)
+
+
+func ground_at(at: Vector2) -> Vector3:
+	return rig.ground_under(viewport_point(at))
 
 
 func person_at_pointer() -> int:
-	var start: Vector3 = rig.camera.project_ray_origin(cursor)
-	var direction: Vector3 = rig.camera.project_ray_normal(cursor)
+	var pixel := viewport_point(cursor)
+	var start: Vector3 = rig.camera.project_ray_origin(pixel)
+	var direction: Vector3 = rig.camera.project_ray_normal(pixel)
 	var ray := PhysicsRayQueryParameters3D.create(start, start + direction * 650, 1 | 2 | 4)
 	ray.collide_with_areas = true
 	var hit: Dictionary = world.get_world_3d().direct_space_state.intersect_ray(ray)
@@ -318,10 +336,49 @@ func overview() -> void:
 	rig.overview()
 
 
+func cancel_camera_input() -> void:
+	dragging = 0
+	drag_travel = 0.0
+	touch.reset()
+	cursor = Vector2(-1000, -1000)
+
+
+## The game binding supplies valley-local coordinates after checking HUD occlusion.
+func touch_input(event: InputEvent, at: Vector2) -> bool:
+	if not camera_input_enabled:
+		cancel_camera_input()
+		return false
+	var result: Dictionary = touch.handle(event, at, size)
+	match result.kind:
+		"ignored":
+			return false
+		"held":
+			cursor = (
+				at if touch.fingers.size() == 1 and not touch.gesturing else Vector2(-1000, -1000)
+			)
+		"tap":
+			cursor = result.at
+			chosen.emit(simulation_position(ground_at(cursor)), MOUSE_BUTTON_LEFT)
+		"orbit":
+			cursor = Vector2(-1000, -1000)
+			rig.orbit(result.delta)
+		"pan_zoom":
+			cursor = Vector2(-1000, -1000)
+			rig.drag_pan(result.delta, size.y)
+			var anchor: Vector3 = ground_at(result.at)
+			if absf(anchor.x) > 1000:
+				anchor = rig.target
+			rig.zoom(result.zoom, anchor)
+	return true
+
+
 func _gui_input(event: InputEvent) -> void:
 	if not camera_input_enabled:
-		dragging = 0
-		drag_travel = 0.0
+		cancel_camera_input()
+		return
+	# Godot still emulates a mouse for ordinary GUI buttons on Android. The world
+	# handles real touch once, on release, instead of casting on the emulated press.
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
 		return
 	if event is InputEventMouseMotion:
 		cursor = event.position
@@ -345,7 +402,7 @@ func _gui_input(event: InputEvent) -> void:
 		cursor = event.position
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and event.pressed:
 			var amount := -1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
-			var anchor: Vector3 = rig.ground_under(cursor)
+			var anchor: Vector3 = ground_at(cursor)
 			if absf(anchor.x) > 1000:
 				anchor = rig.target
 			rig.zoom(amount * maxf(event.factor, 1), anchor)
@@ -356,11 +413,11 @@ func _gui_input(event: InputEvent) -> void:
 				drag_travel = 0
 			else:
 				if dragging == MOUSE_BUTTON_RIGHT and drag_travel < 4:
-					chosen.emit(simulation_position(rig.ground_under(cursor)), MOUSE_BUTTON_RIGHT)
+					chosen.emit(simulation_position(ground_at(cursor)), MOUSE_BUTTON_RIGHT)
 				dragging = 0
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			chosen.emit(simulation_position(rig.ground_under(cursor)), MOUSE_BUTTON_LEFT)
+			chosen.emit(simulation_position(ground_at(cursor)), MOUSE_BUTTON_LEFT)
 			accept_event()
 
 
@@ -370,7 +427,7 @@ func _update_cursor() -> void:
 	)
 	if not cursor_ring.visible:
 		return
-	cursor_world = rig.ground_under(cursor)
+	cursor_world = ground_at(cursor)
 	if absf(cursor_world.x) > 55 or absf(cursor_world.z) > 37:
 		cursor_ring.hide()
 		return
