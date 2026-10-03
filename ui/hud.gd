@@ -12,6 +12,7 @@ var inspector_next: Button
 var inspector_scroll: ScrollContainer
 var account: RichTextLabel
 var title: Label
+var header_spacer: Control
 var readout: Label
 var hint: Label
 var status: Label
@@ -62,11 +63,13 @@ func _build_header() -> void:
 	padding.add_child(row)
 	title = S.heading("Signs of Rain", 32)
 	row.add_child(title)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
+	header_spacer = Control.new()
+	header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(header_spacer)
 	readout = S.label("Day 1 / 7", 18)
 	readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	readout.clip_text = true
+	readout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(readout)
 	var info := S.button("?", func(): command.emit("help"))
 	info.tooltip_text = "Controls and the story"
@@ -203,6 +206,7 @@ func arrange() -> void:
 	buttons.food.text = "Food 1" if size.x < 420 else "Food · 1"
 	hint.visible = not layout_plan.compact
 	title.visible = size.x >= 480
+	header_spacer.visible = size.x >= 480
 	title.add_theme_font_size_override("font_size", 25 if layout_plan.compact else 32)
 	status.position = Vector2(8, layout_plan.bar.position.y - 32)
 	status.size = Vector2(maxf(1, size.x - 16), 28)
@@ -231,7 +235,10 @@ func refresh(
 	var prefix := "Replay · " if replaying else ""
 	readout.text = "%sDay %d / 7   ·   %d power" % [prefix, day, value.get("power", 0)]
 	if value.get("ended", false):
-		readout.text = "The drought is over   ·   Seed %d" % value.get("seed", 2401)
+		readout.text = (
+			("Ended · Seed %d" if size.x < 620 else "The drought is over   ·   Seed %d")
+			% value.get("seed", 2401)
+		)
 	buttons.pause.text = "▶" if paused else "Ⅱ"
 	buttons.speed.text = "%d×" % speed
 	for name in ["observe", "rain", "food"]:

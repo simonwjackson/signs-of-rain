@@ -78,6 +78,8 @@ elif args.action == "audio":
             [
                 "parec",
                 "--device=" + seat["PULSE_SOURCE"],
+                "--latency-msec=20",
+                "--process-time-msec=10",
                 "--format=s16le",
                 "--rate=48000",
                 "--channels=2",

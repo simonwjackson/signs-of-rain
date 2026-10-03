@@ -165,6 +165,8 @@ def audio_capture(name, seconds=2.0):
             [
                 "parec",
                 "--device=" + info["PULSE_SOURCE"],
+                "--latency-msec=20",
+                "--process-time-msec=10",
                 "--format=s16le",
                 "--rate=48000",
                 "--channels=2",
@@ -242,6 +244,12 @@ try:
         )
         wait_state(lambda s: s["window_size"] == [width, height], 15)
         shot(f"layout-{width}x{height}")
+        if width == 320 and height == 240:
+            input_command("move -10000 -10000")
+            input_command("move 294 210")
+            input_command("click left")
+            shot("layout-menu-320x240")
+            key(1)
     subprocess.run([str(TOOLS / "lab-client.py"), "resize", "1440", "900"], check=True)
     wait_state(lambda s: s["window_size"] == [1440, 900], 15)
     key(1)  # Escape selection so the valley expands before targeting.
@@ -309,6 +317,11 @@ try:
     )
     seat.send("stop-record", "RECORD_DONE")
     recording = False
+    subprocess.run([str(TOOLS / "lab-client.py"), "resize", "320", "240"], check=True)
+    wait_state(lambda s: s["window_size"] == [320, 240], 15)
+    shot("ending-320x240")
+    subprocess.run([str(TOOLS / "lab-client.py"), "resize", "1440", "900"], check=True)
+    wait_state(lambda s: s["window_size"] == [1440, 900], 15)
     key(1)  # Escape ending.
     key(25)  # P: replay exact accepted input times, through the actual control.
     wait_state(lambda s: s["replaying"] and s["tick"] < 20)
