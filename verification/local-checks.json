@@ -1,0 +1,107 @@
+[
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--editor",
+      "--import",
+      "--quit"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\n[   0% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Started Project initialization (5 steps)\u001b[39m\u001b[0m\n[   0% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Scanning file structure...\u001b[39m\u001b[0m\n[  16% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Loading global class names...\u001b[39m\u001b[0m\n[  33% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Verifying GDExtensions...\u001b[39m\u001b[0m\n[  50% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Creating autoload scripts...\u001b[39m\u001b[0m\n[  66% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Initializing plugins...\u001b[39m\u001b[0m\n[  83% ] \u001b[90m\u001b[1mfirst_scan_filesystem\u001b[22m | Starting file scan...\u001b[39m\u001b[0m\n\u001b[92m[ DONE ]\u001b[39m \u001b[1mfirst_scan_filesystem\u001b[22m\n\u001b[0m\n[   0% ] \u001b[90m\u001b[1mupdate_scripts_classes\u001b[22m | Started Registering global classes... (2 steps)\u001b[39m\u001b[0m\n[   0% ] \u001b[90m\u001b[1mupdate_scripts_classes\u001b[22m | \u001b[39m\u001b[0m\n[  33% ] \u001b[90m\u001b[1mupdate_scripts_classes\u001b[22m | \u001b[39m\u001b[0m\n\u001b[92m[ DONE ]\u001b[39m \u001b[1mupdate_scripts_classes\u001b[22m\n\u001b[0m\n[   0% ] \u001b[90m\u001b[1mloading_editor_layout\u001b[22m | Started Loading editor (5 steps)\u001b[39m\u001b[0m\n[   0% ] \u001b[90m\u001b[1mloading_editor_layout\u001b[22m | Loading editor layout...\u001b[39m\u001b[0m\n[  16% ] \u001b[90m\u001b[1mloading_editor_layout\u001b[22m | Loading docks...\u001b[39m\u001b[0m\n\u001b[92m[ DONE ]\u001b[39m \u001b[1mloading_editor_layout\u001b[22m\n\u001b[0m\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--script",
+      "tests/simulation_test.gd"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nSIMULATION: 104 checks, 0 failures\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable/bin/godot",
+      "--headless",
+      "--path",
+      ".",
+      "--script",
+      "tests/presentation_test.gd"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Godot Engine v4.6.1.stable.nixpkgs.14d19694e - https://godotengine.org\n\nPRESENTATION: 94 checks, 0 failures\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/m1fw8l8y9ycxh5dzispbb7cwl6rra14l-python3-3.13.12/bin/python3",
+      "tests/operations_test.py"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "",
+    "stderr": "test_complete_copy_and_repeat_deploy (__main__.OperationsTest.test_complete_copy_and_repeat_deploy) ... ok\ntest_copied_bytes_checked_before_publication (__main__.OperationsTest.test_copied_bytes_checked_before_publication) ... ok\ntest_input_without_explicit_private_socket_refused (__main__.OperationsTest.test_input_without_explicit_private_socket_refused) ... ok\ntest_interrupted_old_copy_never_becomes_current (__main__.OperationsTest.test_interrupted_old_copy_never_becomes_current) ... ok\ntest_outside_manifest_member_rejected (__main__.OperationsTest.test_outside_manifest_member_rejected) ... ok\ntest_unresponsive_owned_child_gets_bounded_kill (__main__.OperationsTest.test_unresponsive_owned_child_gets_bounded_kill) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.204s\n\nOK\n"
+  },
+  {
+    "command": [
+      "/nix/store/pj444b1388w76r3zi7y75r3fgbrqg8ji-gdtoolkit-4.5.0/bin/gdformat",
+      "--check",
+      "game",
+      "ui",
+      "sim",
+      "tests"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "9 files would be left unchanged\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/pj444b1388w76r3zi7y75r3fgbrqg8ji-gdtoolkit-4.5.0/bin/gdlint",
+      "game",
+      "ui",
+      "sim",
+      "tests"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "Success: no problems found\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/nmylkiq687h76gk4snd3kqqvwbwg1vnd-ruff-0.15.5/bin/ruff",
+      "check",
+      "tools",
+      "tests"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "All checks passed!\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/nix/store/nmylkiq687h76gk4snd3kqqvwbwg1vnd-ruff-0.15.5/bin/ruff",
+      "format",
+      "--check",
+      "tools",
+      "tests"
+    ],
+    "passed": true,
+    "exit": 0,
+    "stdout": "13 files already formatted\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,6 @@
+.godot/
+.worktree/
+build/
+artifacts/
+__pycache__/
+*.pyc

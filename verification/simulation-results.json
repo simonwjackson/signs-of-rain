@@ -1,0 +1,319 @@
+{
+	"checks": 104,
+	"evidence": {
+		"balanced": {
+			"action_log_entries": 217,
+			"commands": 4,
+			"digest": "184ed0a1ae0f971b84f27cc4209d4e500cb4741158dfe326a65c9cf11d67892c",
+			"events": 4,
+			"metrics": {
+				"avoidance": 24,
+				"beliefs": {
+					"care": 12,
+					"favoritism": 6,
+					"ritual": 6,
+					"uncertain": 0
+				},
+				"exhausted": 10,
+				"harvested": 156.65148518562435,
+				"mean_hunger": 0.6921050933559406,
+				"mean_thirst": 0.7038068356802052,
+				"offerings": 10.0,
+				"reports": 51,
+				"rituals": 16,
+				"shared_food": 24.0,
+				"shares": 4,
+				"villages": [
+					{
+						"food": 0.0,
+						"mean_hunger": 0.6314642949290212,
+						"mean_thirst": 0.7219504433949778,
+						"name": "Alder",
+						"water": 0.0
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.7527458917828604,
+						"mean_thirst": 0.6856632279654323,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 18.0
+			},
+			"power_left": 0
+		},
+		"cache_information": {
+			"collected_before_report": 37.982,
+			"depletion_discovered_by_visit": true,
+			"reported_at": 6,
+			"uninformed_ticks_checked": 30
+		},
+		"causal_controls": {
+			"excluded_history": {
+				"avoidance": 3,
+				"beliefs": {
+					"care": 0,
+					"favoritism": 1,
+					"ritual": 0,
+					"uncertain": 23
+				},
+				"exhausted": 11,
+				"harvested": 32.012122000000026,
+				"mean_hunger": 0.37216754793750034,
+				"mean_thirst": 0.6344458333333333,
+				"offerings": 0.0,
+				"reports": 0,
+				"rituals": 0,
+				"shared_food": 0.0,
+				"shares": 0,
+				"villages": [
+					{
+						"food": 38.89350802500012,
+						"mean_hunger": 0.5717000000000029,
+						"mean_thirst": 0.7701000000000026,
+						"name": "Alder",
+						"water": 77.24499999999959
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.17263509587499773,
+						"mean_thirst": 0.49879166666666414,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 0.0
+			},
+			"helped_history": {
+				"avoidance": 7,
+				"beliefs": {
+					"care": 6,
+					"favoritism": 9,
+					"ritual": 3,
+					"uncertain": 6
+				},
+				"exhausted": 11,
+				"harvested": 21.75825452500001,
+				"mean_hunger": 0.40116552181250054,
+				"mean_thirst": 0.6610750000000002,
+				"offerings": 0.0,
+				"reports": 17,
+				"rituals": 0,
+				"shared_food": 6.0,
+				"shares": 1,
+				"villages": [
+					{
+						"food": 49.25399999999996,
+						"mean_hunger": 0.6026345280000031,
+						"mean_thirst": 0.8233583333333363,
+						"name": "Alder",
+						"water": 86.37499999999955
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.199696515624998,
+						"mean_thirst": 0.49879166666666414,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 0.0
+			},
+			"needs_only": [
+				"ritual",
+				"care"
+			],
+			"shrine_history": {
+				"avoidance": 0,
+				"beliefs": {
+					"care": 0,
+					"favoritism": 0,
+					"ritual": 1,
+					"uncertain": 23
+				},
+				"exhausted": 11,
+				"harvested": 31.11940355000002,
+				"mean_hunger": 0.3843364911250004,
+				"mean_thirst": 0.6476000000000001,
+				"offerings": 2.0,
+				"reports": 0,
+				"rituals": 1,
+				"shared_food": 0.0,
+				"shares": 0,
+				"villages": [
+					{
+						"food": 49.894000000000034,
+						"mean_hunger": 0.592500000000003,
+						"mean_thirst": 0.796408333333336,
+						"name": "Alder",
+						"water": 81.75499999999957
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.17617298224999767,
+						"mean_thirst": 0.49879166666666414,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 0.0
+			}
+		},
+		"competing_confidence": {
+			"high_trust_action": "ritual",
+			"high_trust_belief": "ritual",
+			"high_trust_conviction": 0.5859872611464968,
+			"high_trust_memories": 3,
+			"high_trust_total_offerings": 3.0,
+			"low_trust_action": "fetch",
+			"low_trust_belief": "care",
+			"low_trust_conviction": 0.4504504504504504,
+			"low_trust_memories": 3,
+			"low_trust_total_offerings": 2.0
+		},
+		"contrasts": {
+			"balanced_thirst_gap": 0.036287215429545494,
+			"balanced_thirst_reduction": 0.16274160976509522,
+			"one_sided_thirst_gap": 0.4278443816165151
+		},
+		"information": {
+			"direct_witnesses": [
+				0
+			],
+			"distant_receiver_memories_at_17": 0,
+			"distrusted_receiver_memories_at_17": 0,
+			"trusted_receiver_learned": true
+		},
+		"mixed_replay": {
+			"caches": 4,
+			"commands": 6,
+			"digest": "fdf2b8729a7c6df4f852ef5fb12df5003be48a1aa3c63a2faaaf70b7d1ded7f0",
+			"metrics": {
+				"avoidance": 21,
+				"beliefs": {
+					"care": 9,
+					"favoritism": 7,
+					"ritual": 8,
+					"uncertain": 0
+				},
+				"exhausted": 23,
+				"harvested": 35.08317965757903,
+				"mean_hunger": 0.7320868857005233,
+				"mean_thirst": 0.9610459787120426,
+				"offerings": 11.0,
+				"reports": 78,
+				"rituals": 14,
+				"shared_food": 48.0,
+				"shares": 8,
+				"villages": [
+					{
+						"food": 0.0,
+						"mean_hunger": 0.7679348287662401,
+						"mean_thirst": 0.9516605598588789,
+						"name": "Alder",
+						"water": 0.0
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.696238942634806,
+						"mean_thirst": 0.9704313975652062,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 12.0
+			},
+			"replay_matches": true,
+			"reversed_pair_differs": true,
+			"same_tick_pairs": 3,
+			"seed": 5709
+		},
+		"none": {
+			"action_log_entries": 103,
+			"commands": 0,
+			"digest": "ce90fa2ff657e546e1de7bf80aba49e51bb646aaa301a6305a55bede0126cf45",
+			"events": 0,
+			"metrics": {
+				"avoidance": 0,
+				"beliefs": {
+					"care": 0,
+					"favoritism": 0,
+					"ritual": 0,
+					"uncertain": 24
+				},
+				"exhausted": 18,
+				"harvested": 150.0458929999999,
+				"mean_hunger": 0.6844836912315183,
+				"mean_thirst": 0.8665484454453004,
+				"offerings": 0.0,
+				"reports": 0,
+				"rituals": 0,
+				"shared_food": 0.0,
+				"shares": 0,
+				"villages": [
+					{
+						"food": 0.0,
+						"mean_hunger": 0.6846298738925731,
+						"mean_thirst": 0.858200000000001,
+						"name": "Alder",
+						"water": 0.0
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.6843375085704634,
+						"mean_thirst": 0.8748968908906001,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 160.0
+			},
+			"power_left": 8
+		},
+		"one_sided": {
+			"action_log_entries": 169,
+			"commands": 4,
+			"digest": "a58ba4ab28d2142dd9cb4e70f91a8ff813268d113c7b56d5ca5a43e69314b7cc",
+			"events": 4,
+			"metrics": {
+				"avoidance": 25,
+				"beliefs": {
+					"care": 6,
+					"favoritism": 12,
+					"ritual": 6,
+					"uncertain": 0
+				},
+				"exhausted": 17,
+				"harvested": 194.52889692674904,
+				"mean_hunger": 0.5911495302988331,
+				"mean_thirst": 0.6567444758584098,
+				"offerings": 4.0,
+				"reports": 24,
+				"rituals": 7,
+				"shared_food": 12.0,
+				"shares": 2,
+				"villages": [
+					{
+						"food": 0.07955335068228253,
+						"mean_hunger": 0.49022155202720286,
+						"mean_thirst": 0.44282228505015214,
+						"name": "Alder",
+						"water": 12.42000000000001
+					},
+					{
+						"food": 0.0,
+						"mean_hunger": 0.6920775085704635,
+						"mean_thirst": 0.8706666666666673,
+						"name": "Sedge",
+						"water": 0.0
+					}
+				],
+				"well_drawn": 72.0
+			},
+			"power_left": 0
+		}
+	},
+	"failures": [],
+	"passed": true
+}
