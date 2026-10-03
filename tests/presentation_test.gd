@@ -78,6 +78,25 @@ func run() -> void:
 			)
 		)
 		game.hud.command.emit("close")
+		game.hud.show_ending(
+			{
+				"title": "The seventh evening",
+				"text": "The week ends. Its stories remain.",
+				"metrics": {}
+			}
+		)
+		await process_frame
+		await process_frame
+		var scrolls = game.hud.sheet_box.find_children("*", "ScrollContainer", true, false)
+		check(
+			scrolls.size() == 1 and scrolls[0].size.y >= 44,
+			"ending account has a readable scroll area at %s" % viewport_size
+		)
+		check(
+			bounds.encloses(game.hud.sheet_box.get_global_rect()),
+			"ending stays inside the window at %s" % viewport_size
+		)
+		game.hud.command.emit("close")
 	root.size = Vector2i(1440, 900)
 	await process_frame
 	game.hud.buttons.rain.emit_signal("pressed")
@@ -110,6 +129,16 @@ func run() -> void:
 	Input.parse_input_event(key)
 	await process_frame
 	check(game.selected == 0, "Tab selects person even with a focused button")
+	game.hud.command.emit("focus")
+	check(
+		game.valley.camera_evidence().followed_person == 0,
+		"close camera follows the inspected person"
+	)
+	game.hud.person_chosen.emit(1)
+	check(
+		game.valley.camera_evidence().followed_person == 1,
+		"changing inspected person retargets close camera"
+	)
 	game.hud.command.emit("restart")
 	game.hud.command.emit("food")
 	game.valley.chosen.emit(Vector2(240, 340), MOUSE_BUTTON_LEFT)

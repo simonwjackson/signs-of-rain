@@ -121,6 +121,8 @@ func _build_bar() -> void:
 	var popup := menu.get_popup()
 	popup.add_item("People", 0)
 	popup.add_item("Next person     Tab", 9)
+	popup.add_item("Close view of person     C", 10)
+	popup.add_item("Whole valley     V", 11)
 	popup.add_item("Change speed     F", 1)
 	popup.add_item("Restart same seed     R", 2)
 	popup.add_item("Replay my last attempt     P", 3)
@@ -143,7 +145,18 @@ func _build_bar() -> void:
 
 func _menu_command(id: int) -> void:
 	var names := [
-		"people", "speed", "restart", "replay", "save", "mute", "motion", "help", "quit", "next"
+		"people",
+		"speed",
+		"restart",
+		"replay",
+		"save",
+		"mute",
+		"motion",
+		"help",
+		"quit",
+		"next",
+		"focus",
+		"overview"
 	]
 	command.emit(names[id])
 
@@ -246,7 +259,8 @@ func refresh(
 	buttons.rain.disabled = int(value.get("power", 0)) < 2 or replaying or value.get("ended", false)
 	buttons.food.disabled = int(value.get("power", 0)) < 1 or replaying or value.get("ended", false)
 	var hints := {
-		"observe": "Click a person to follow their story. Tab visits everyone.",
+		"observe":
+		"Wheel: zoom   ·   Middle drag: orbit   ·   Right drag: pan   ·   C: person   ·   V: valley",
 		"rain":
 		"Rain · 2 power. Put a village well inside the circle to restore its water and crops.",
 		"food": "Click to leave food. It costs 1 power. A gift can mean different things."
@@ -393,6 +407,8 @@ func show_help(intro: bool, seed_value: int) -> void:
 		+ "Then restart and help both villages, or do nothing.\n\n"
 		+ "[color=#89c6d0]Controls[/color]\n1  Look and select a person\n"
 		+ "2  Rain, then click a place · costs 2\n3  Food, then click a place · costs 1\n"
+		+ "Wheel  Zoom from person to landscape\nMiddle drag  Orbit and tilt\n"
+		+ "Right drag or WASD  Pan\nQ / E  Orbit\nC  Close view of a person\nV  Whole valley\n"
 		+ "Space  Pause or resume\nTab  Follow the next person\nF  Change time speed\n"
 		+ "R  Restart the same seed\nM  Mute sound\nH  Open this guide\n"
 		+ "Escape  Close a panel or cancel a miracle\n\n"
@@ -451,8 +467,16 @@ func show_ending(summary: Dictionary) -> void:
 		+ "or replay your exact last attempt."
 	)
 	scroll.add_child(S.prose(text))
-	column.add_child(S.button("Try again, same seed", func(): command.emit("restart")))
-	column.add_child(S.button("Stay and listen", func(): command.emit("close")))
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	column.add_child(actions)
+	var restart := S.button("Restart", func(): command.emit("restart"))
+	restart.tooltip_text = "Try again with the same seed"
+	restart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(restart)
+	var inspect := S.button("Inspect people", func(): command.emit("close"))
+	inspect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(inspect)
 
 
 func update_toggles(sound_muted: bool, still: bool) -> void:

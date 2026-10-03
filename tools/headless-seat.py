@@ -5,6 +5,7 @@
 Keep this process alive and send one command per stdin line:
   key EVDEV_CODE             tap a key (decimal 1..767)
   move DX DY                 relative motion (finite, each within +/-8388607)
+  scroll STEPS               wheel movement, nonzero integer -32..32
   down|up|click BUTTON       left, right, or middle
   wait MILLISECONDS          decimal 0..10000
   type TEXT                  nonempty lowercase ASCII letters/digits

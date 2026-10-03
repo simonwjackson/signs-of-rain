@@ -1,0 +1,44 @@
+{
+  "author": "Quaternius",
+  "retrieved_utc": "2026-10-03",
+  "license": "CC0-1.0 (actual licenses retained from all three downloaded archives)",
+  "sources": [
+    {
+      "pack": "Universal Base Characters [Standard]",
+      "page": "https://quaternius.com/packs/universalbasecharacters.html",
+      "download_page": "https://quaternius.itch.io/universal-base-characters",
+      "itch_upload_id": 15861669,
+      "archive_sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+      "archive_bytes": 128968391,
+      "license_file": "base-LICENSE.txt",
+      "selected": "Superhero male/female faces, eyes, eyebrows; SimpleParted, Buzzed, Beard, Buns, Long hair; referenced textures"
+    },
+    {
+      "pack": "Modular Character Outfits - Fantasy [Standard]",
+      "page": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+      "download_page": "https://quaternius.itch.io/modular-character-outfits-fantasy",
+      "itch_upload_id": 16289385,
+      "archive_sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
+      "archive_bytes": 294347394,
+      "license_file": "outfits-LICENSE.txt",
+      "selected": "Male_Peasant and Female_Peasant glTF outfits and referenced textures"
+    },
+    {
+      "pack": "Universal Animation Library [Standard]",
+      "page": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "download_page": "https://quaternius.itch.io/universal-animation-library",
+      "itch_upload_id": 17958403,
+      "archive_sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
+      "archive_bytes": 15904933,
+      "license_file": "anim-LICENSE.txt",
+      "selected": "UAL1_Standard.glb (NOT _RM); six selected animations; no mannequin mesh"
+    }
+  ],
+  "modifications": [
+    "Assembled each outfit with face, eyes, eyebrows and multiple hairstyles on one 65-bone skeleton.",
+    "Pruned body triangles below the neck and outside the head width; original covered body vertices remain unreferenced in the binary.",
+    "Converted animation rotation tracks to target rest-relative rotations; retained only pelvis vertical bob translation; omitted root translation, root rotation, non-pelvis translation, and scale tracks.",
+    "Reduced texture maximum dimensions to 1024 pixels with Lanczos resampling; repaired two source glTF texture URIs with corresponding archive textures.",
+    "Runtime applies clothing, skin and hair tints; selects hairstyles; keeps root motion absent; adds simple upright supply vessels."
+  ]
+}

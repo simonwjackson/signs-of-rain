@@ -6,6 +6,12 @@ The drought ends after seven days, about 4 minutes 40 seconds at normal speed. Y
 
 | Control | Action |
 | --- | --- |
+| Wheel | Zoom continuously between face, village, and landscape scale. |
+| Middle drag | Orbit and tilt the 3D camera. |
+| Right drag, or WASD | Pan across the terrain. |
+| Q / E | Orbit with the keyboard. |
+| C | Focus a close view on the selected person. |
+| V | Return to the whole valley. |
 | 1, or Look | Select a person by clicking them. |
 | 2, then click | Bring rain. Put a village well inside the preview circle to restore its water and crops. |
 | 3, then click | Place a food cache. People must find it, collect it, and carry the food. |
@@ -22,9 +28,9 @@ The drought ends after seven days, about 4 minutes 40 seconds at normal speed. Y
 
 The guide and People list do not pause time automatically. Use Space before opening them if you want time to stop. The first guide starts paused.
 
-The inspector separates direct observation from reports. It shows the person who passed a story, its route, the interpretation, and subsequent choices. A dotted line points to the latest witness location or reporter. A new sign can take until the next simulation tick to change an action.
+The inspector separates direct observation from reports. It shows the person who passed a story, its route, the interpretation, and subsequent choices. When following a person closely, selecting another person also moves the camera to them. A new sign can take until the next simulation tick to change an action.
 
-World signs have meaning. A basket travels with a carrier. A pale speech bubble marks a story. An arc above the head marks ritual activity. Crossed strokes mark withdrawal from contact. Blue-green people live in Alder; plum people live in Sedge. Village wells and crops change as resources change.
+World activity has meaning. People carry food baskets and water vessels only when they hold supplies. Skeletal gestures show work, conversation, sharing, and ritual. Withdrawal changes their destinations. Inspect a person to identify their village and reasons. Crop height and color follow the remaining crop; the common well's water level follows its supply.
 
 ## Suggested experiments
 
@@ -40,4 +46,4 @@ The valley contains 24 rule-driven people and four starting history patterns. Tr
 
 Resources and beliefs interact, but this is not a calibrated survival model or a theory of religion. A kind gift can also cause travel and offerings that reduce harvesting. There is no single moral score or guaranteed best strategy.
 
-Desktop mouse and keyboard are the supported controls. Small windows keep the controls but make the world harder to read; use the People menu there. Controller, touch, and screen-reader play are not verified. Seeded results are verified on the supplied Godot 4.6.1 runtime, not across engine versions or CPU architectures.
+Desktop mouse and keyboard are the supported controls. Small windows keep the controls but make the world harder to read; use the People menu there, then close the inspector to see the focused person. Camera clearance prevents terrain penetration, but does not prevent passing through architecture. Controller, touch, and screen-reader play are not verified. Seeded results are verified on the supplied Godot 4.6.1 runtime, not across engine versions or CPU architectures.

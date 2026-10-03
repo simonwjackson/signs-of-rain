@@ -92,6 +92,7 @@ func _refresh() -> void:
 	valley.mode = mode
 	valley.motion = not reduced_motion and not paused
 	valley.effects_static = reduced_motion
+	valley.camera_input_enabled = not hud.sheet_open() and not hud.menu.get_popup().visible
 	hud.refresh(snapshot, selected, mode, paused, speed, replaying)
 
 
@@ -119,8 +120,8 @@ func _after_tick() -> void:
 	var actions: Array = simulation.action_log
 	for i in range(action_count, actions.size()):
 		var action: Dictionary = actions[i]
-		if action.action in ["share", "ritual", "tell", "avoid"]:
-			valley.action_mark(action.action, simulation.people[int(action.person)].pos)
+		if action.action in ["share", "tell"]:
+			valley.action_mark(action.action, int(action.person))
 	action_count = actions.size()
 	if simulation.ended and not ended_shown:
 		ended_shown = true
@@ -139,14 +140,7 @@ func _world_input(point: Vector2, button: int) -> void:
 		{"tick": simulation.tick, "type": "world_click", "point": [point.x, point.y], "mode": mode}
 	)
 	if mode == "observe":
-		var nearest := -1
-		var distance := 30.0 / maxf(valley.scale_factor, .35)
-		for person in simulation.people:
-			var candidate: float = point.distance_to(person.pos)
-			if candidate < distance:
-				distance = candidate
-				nearest = person.id
-		_select(nearest)
+		_select(valley.person_at_pointer())
 	elif not replaying:
 		var result: Dictionary = simulation.cast(mode, point)
 		if result.ok:
@@ -167,6 +161,8 @@ func _world_input(point: Vector2, button: int) -> void:
 
 func _select(id: int) -> void:
 	selected = id
+	if id >= 0 and valley.is_following_person():
+		valley.focus_person(id)
 	mode = "observe"
 	_refresh()
 	_arrange()
@@ -217,6 +213,12 @@ func _command(name: String) -> void:
 			else:
 				_restart(true)
 				paused = false
+		"focus":
+			if selected < 0:
+				_select(0)
+			valley.focus_person(selected)
+		"overview":
+			valley.overview()
 		"next":
 			_select((selected + 1) % 24)
 		"save":
@@ -307,7 +309,9 @@ func _input(event: InputEvent) -> void:
 		KEY_R: "restart",
 		KEY_M: "mute",
 		KEY_H: "help",
-		KEY_P: "replay"
+		KEY_P: "replay",
+		KEY_C: "focus",
+		KEY_V: "overview"
 	}
 	if event.keycode == KEY_ESCAPE:
 		if hud.sheet_open():
@@ -332,6 +336,8 @@ func _input(event: InputEvent) -> void:
 func _json_value(value: Variant) -> Variant:
 	if value is Vector2:
 		return [value.x, value.y]
+	if value is Vector3:
+		return [value.x, value.y, value.z]
 	if value is Dictionary:
 		var result := {}
 		for key in value:
@@ -369,6 +375,17 @@ func _emit_evidence() -> void:
 	snapshot["window_size"] = [size.x, size.y]
 	snapshot["world_rect"] = [valley.position.x, valley.position.y, valley.size.x, valley.size.y]
 	snapshot["fps"] = Engine.get_frames_per_second()
+	snapshot["camera"] = valley.camera_evidence()
+	var camera_position: Vector3 = snapshot["camera"]["position"]
+	snapshot["camera"]["terrain_clearance"] = (
+		camera_position.y - valley.terrain.height_at(Vector2(camera_position.x, camera_position.z))
+	)
+	var targets := {}
+	for entry in [
+		["alder", Vector2(240, 340)], ["sedge", Vector2(760, 340)], ["shrine", Vector2(490, 290)]
+	]:
+		targets[entry[0]] = valley.to_screen(entry[1])
+	snapshot["screen_targets"] = targets
 	file.store_string(JSON.stringify(_json_value(snapshot)))
 	file.close()
 	var result := DirAccess.rename_absolute(temporary, evidence_path)

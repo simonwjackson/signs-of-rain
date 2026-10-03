@@ -174,7 +174,7 @@ static int command(char *line, bool check_only) {
     if (!a) return fail("command requires arguments");
     unsigned int value = 0;
     double x = 0, y = 0;
-    enum { KEY, MOVE, DOWN, UP, CLICK, WAIT, TYPE, NAME } kind;
+    enum { KEY, MOVE, SCROLL, DOWN, UP, CLICK, WAIT, TYPE, NAME } kind;
     if (!strcmp(action, "move")) {
         kind = MOVE;
         if (!coordinate(a, &x) || !coordinate(b, &y))
@@ -184,6 +184,10 @@ static int command(char *line, bool check_only) {
         if (!strcmp(action, "key")) {
             kind = KEY;
             if (!integer(a, KEY_MAX, &value) || !value) return fail("key requires decimal 1..767");
+        } else if (!strcmp(action, "scroll")) {
+            kind = SCROLL;
+            if (!coordinate(a, &x) || x < -32 || x > 32 || x == 0 || x != (int)x)
+                return fail("scroll requires a nonzero whole number within +/-32");
         } else if (!strcmp(action, "wait")) {
             kind = WAIT;
             if (!integer(a, 10000, &value)) return fail("wait requires decimal 0..10000");
@@ -206,6 +210,12 @@ static int command(char *line, bool check_only) {
             break;
         case MOVE:
             zwlr_virtual_pointer_v1_motion(pointer, (uint32_t)milliseconds(), wl_fixed_from_double(x), wl_fixed_from_double(y));
+            zwlr_virtual_pointer_v1_frame(pointer);
+            if (roundtrip() < 0 || pause_ms(150) < 0) return -1;
+            break;
+        case SCROLL:
+            zwlr_virtual_pointer_v1_axis_source(pointer, WL_POINTER_AXIS_SOURCE_WHEEL);
+            zwlr_virtual_pointer_v1_axis_discrete(pointer, (uint32_t)milliseconds(), WL_POINTER_AXIS_VERTICAL_SCROLL, wl_fixed_from_double(x * 10), (int)x);
             zwlr_virtual_pointer_v1_frame(pointer);
             if (roundtrip() < 0 || pause_ms(150) < 0) return -1;
             break;

@@ -125,6 +125,7 @@ def save_state(name):
         "commands": current["commands"],
         "summary": current["summary"],
         "fps": current["fps"],
+        "camera": current.get("camera"),
     }
     return current
 
@@ -132,16 +133,19 @@ def save_state(name):
 def click_world(kind, x, y):
     key(3 if kind == "rain" else 4)
     current = wait_state(lambda s: s["selected"] == -1)
-    left, top, width, height = current["world_rect"]
-    scale = min(width / 1000, height / 640)
-    px = round(left + (width - 1000 * scale) / 2 + x * scale)
-    py = round(top + (height - 640 * scale) / 2 + y * scale)
+    target = {(240, 340): "alder", (760, 340): "sedge", (490, 290): "shrine"}[(x, y)]
+    px, py = [round(value) for value in current["screen_targets"][target]]
     input_command("move -10000 -10000")
     input_command(f"move {px} {py}")
     before = len(current["commands"])
     input_command("click left")
     after = wait_state(lambda s: len(s["commands"]) == before + 1)
     check(after["commands"][-1]["kind"] == kind, "real pointer cast " + kind)
+    landed = after["commands"][-1]["pos"]
+    check(
+        math.dist(landed, [x, y]) < 3.0,
+        "3D camera ray lands near the intended " + target + " ground",
+    )
     return after
 
 
@@ -228,8 +232,74 @@ try:
     )
     initial_digest = initial["digest"]
     check(initial["commands"] == [], "restart begins with no interventions")
-    # Read real containers at the size ladder, with a visible inspector.
+    # Prove the person-to-landscape camera through real physical input.
+    seat.send("record camera-tour.mkv", "RECORD_STARTED")
+    recording = True
     key(15)
+    key(46)  # C: focus selected person.
+    wait_state(lambda s: s["camera"]["distance"] < 1.8, 15)
+    shot("person-close")
+    save_state("camera-person")
+    current = state()
+    check(
+        current["camera"]["distance"] < 1.8,
+        "close camera reaches a person without a mode switch",
+    )
+    left, top, width, height = current["world_rect"]
+    input_command("move -10000 -10000")
+    input_command(f"move {round(left + width / 2)} {round(top + height / 2)}")
+    input_command("scroll -9")
+    close = wait_state(lambda s: s["camera"]["distance"] < 1.1, 15)
+    check(
+        close["camera"]["distance"] < 1.1,
+        "real mouse wheel reaches face-scale distance",
+    )
+    check(
+        close["camera"]["terrain_clearance"] >= 0.49,
+        "face-scale camera remains above actual terrain",
+    )
+    shot("person-face")
+    save_state("camera-face")
+    yaw = close["camera"]["yaw"]
+    input_command("down middle")
+    input_command("move 110 -20")
+    input_command("up middle")
+    orbit = wait_state(lambda s: abs(s["camera"]["yaw"] - yaw) > 0.3, 15)
+    check(
+        abs(orbit["camera"]["yaw"] - yaw) > 0.3,
+        "middle drag orbits the actual 3D camera",
+    )
+    shot("person-orbit")
+    # Click the visible torso/head through real camera geometry, not an inspector shortcut.
+    input_command("click left")
+    picked = wait_state(lambda s: s["selected"] == 0)
+    check(
+        picked["selected"] == 0,
+        "actual close-view pointer picks the inspected 3D person",
+    )
+    input_command("scroll 32")
+    wide = wait_state(
+        lambda s: (
+            s["camera"]["distance"] > 90
+            and s["camera"]["pitch"] > 35
+            and abs(s["camera"]["distance"] - s["camera"]["target_distance"]) < 0.1
+        ),
+        15,
+    )
+    check(wide["camera"]["pitch"] > 35, "zoom climbs continuously to a landscape view")
+    shot("landscape-wide")
+    save_state("camera-landscape")
+    key(47)  # V: overview.
+    wait_state(
+        lambda s: (
+            abs(s["camera"]["distance"] - s["camera"]["target_distance"]) < 0.1
+            and not s["camera"]["following"]
+        ),
+        15,
+    )
+    seat.send("stop-record", "RECORD_DONE")
+    recording = False
+    # Read real containers at the size ladder, with a visible inspector.
     for width, height in [
         (1440, 900),
         (1024, 768),
@@ -255,6 +325,33 @@ try:
     key(1)  # Escape selection so the valley expands before targeting.
     key(19)
     wait_state(lambda s: s["paused"] and s["tick"] == 0)
+    # Resource targeting after resize and zoom, then discard this probe attempt.
+    subprocess.run([str(TOOLS / "lab-client.py"), "resize", "1024", "768"], check=True)
+    wait_state(lambda s: s["window_size"] == [1024, 768], 15)
+    key(15)
+    key(46)
+    wait_state(lambda s: s["camera"]["distance"] < 1.8, 15)
+    key(4)
+    input_command("move -10000 -10000")
+    input_command("move 500 590")
+    input_command("click left")
+    close_cast = wait_state(lambda s: len(s["commands"]) == 1)
+    check(
+        close_cast["commands"][0]["kind"] == "food" and close_cast["power"] == 7,
+        "real resized close-camera ground picking places food",
+    )
+    shot("close-ground-cast")
+    key(19)
+    subprocess.run([str(TOOLS / "lab-client.py"), "resize", "1440", "900"], check=True)
+    wait_state(
+        lambda s: (
+            s["window_size"] == [1440, 900]
+            and s["tick"] == 0
+            and s["power"] == 8
+            and abs(s["camera"]["distance"] - s["camera"]["target_distance"]) < 0.1
+        ),
+        15,
+    )
     report["audio_on"] = audio_capture("audio-on")
     key(50)
     time.sleep(0.2)
@@ -369,8 +466,8 @@ try:
     check(game.wait(timeout=15) == 0, "second normal exit is clean")
     log = (LAB / "game-target.log").read_text()
     check(
-        "Using Device: AMD - AMD Radeon RX 7900 XT" in log,
-        "actual renderer is the RX 7900 XT",
+        "AMD Radeon RX 7900 XT" in log and "Vulkan" in log and "Forward+" in log,
+        "actual 3D renderer is Forward+ Vulkan on the RX 7900 XT",
     )
     check(
         "SCRIPT ERROR" not in log and "\nERROR:" not in log,

@@ -93,7 +93,7 @@ if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" && -S "$XDG_RUNTIME_DIR/way
 fi
 ARGS=()
 if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then ARGS+=(--display-driver wayland); fi
-exec "$RUNTIME" --main-pack "$ROOT/signs-of-rain.pck" --rendering-method gl_compatibility "${ARGS[@]}" "$@"
+exec "$RUNTIME" --main-pack "$ROOT/signs-of-rain.pck" --rendering-method forward_plus "${ARGS[@]}" "$@"
 """
     )
     launcher.chmod(0o755)
@@ -101,6 +101,8 @@ exec "$RUNTIME" --main-pack "$ROOT/signs-of-rain.pck" --rendering-method gl_comp
     licenses.mkdir(exist_ok=True)
     for source in (ROOT / "assets/fonts").glob("*OFL.txt"):
         shutil.copyfile(source, licenses / source.name)
+    for source in (ROOT / "assets/characters").glob("*LICENSE.txt"):
+        shutil.copyfile(source, licenses / ("characters-" + source.name))
     for source in ["README.md", "docs/controls.md"]:
         path = ROOT / source
         if path.exists():

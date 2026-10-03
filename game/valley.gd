@@ -1,44 +1,146 @@
 extends Control
-## World presentation. State is supplied by the composition root; never mutated here.
+## A real 3D world inside an intrinsically sized viewport. Model state is read-only.
 signal chosen(point: Vector2, button: int)
+const Terrain = preload("res://game/terrain.gd")
+const Villager = preload("res://game/villager.gd")
+const GodCamera = preload("res://game/god_camera.gd")
 const S = preload("res://ui/style.gd")
-const WORLD := Vector2(1000, 640)
 var state: Dictionary = {}
 var selected := -1
 var mode := "observe"
 var motion := true
 var effects_static := false
-var clock := 0.0
+var camera_input_enabled := true
 var scale_factor := 1.0
-var origin := Vector2.ZERO
+var viewport := SubViewport.new()
+var world := Node3D.new()
+var terrain: Node3D
+var rig: Node3D
+var people: Dictionary = {}
+var pick_shapes: Dictionary = {}
+var caches: Dictionary = {}
+var village_labels: Array[Label3D] = []
+var selected_ring: MeshInstance3D
+var cursor_ring: MeshInstance3D
+var cursor_mesh := ImmediateMesh.new()
 var cursor := Vector2(-1000, -1000)
-var displayed: Dictionary = {}
-var decor: Array[Dictionary] = []
-var flashes: Array[Dictionary] = []
+var cursor_world := Vector3(10000, 0, 10000)
+var last_ring := Vector3(10000, 0, 10000)
+var last_ring_mode := ""
+var dragging := 0
+var drag_travel := 0.0
+var follow_id := -1
+var last_tick := -1
+var clock := 0.0
+var effects: Array[Dictionary] = []
+var environment := Environment.new()
+var sunlight := DirectionalLight3D.new()
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
-	mouse_default_cursor_shape = Control.CURSOR_CROSS
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 621
-	for i in range(150):
-		var point := Vector2(rng.randf_range(20, 980), rng.randf_range(30, 610))
-		decor.append({"pos": point, "size": rng.randf_range(2, 9), "kind": i % 4})
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
+	viewport.name = "ValleyViewport"
+	viewport.own_world_3d = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.msaa_3d = Viewport.MSAA_4X
+	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	viewport.audio_listener_enable_3d = false
+	add_child(viewport)
+	var image := TextureRect.new()
+	image.texture = viewport.get_texture()
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_SCALE
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(image)
+	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	world.name = "Valley"
+	viewport.add_child(world)
+	terrain = Terrain.new()
+	world.add_child(terrain)
+	_lighting()
+	rig = GodCamera.new(terrain.height_at)
+	world.add_child(rig)
+	selected_ring = _ring(.53, Color("ddc875"))
+	world.add_child(selected_ring)
+	selected_ring.hide()
+	cursor_ring = MeshInstance3D.new()
+	cursor_ring.mesh = cursor_mesh
+	cursor_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(cursor_ring)
+	for id in range(2):
+		var label := Label3D.new()
+		label.name = "VillageLabel%d" % id
+		label.font = S.DISPLAY
+		label.font_size = 54
+		label.pixel_size = .017
+		label.outline_size = 8
+		label.outline_modulate = Color(.055, .09, .07, .75)
+		label.modulate = Color("fff3d3")
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.no_depth_test = false
+		world.add_child(label)
+		village_labels.append(label)
+	resized.connect(_resize)
 	mouse_exited.connect(func(): cursor = Vector2(-1000, -1000))
+	_resize()
 
 
-func _process(delta: float) -> void:
-	clock += delta if motion else 0.0
-	for person in state.get("people", []):
-		var id: int = person.id
-		var at: Vector2 = displayed.get(id, person.pos)
-		displayed[id] = at.lerp(person.pos, minf(1, delta * 9)) if motion else person.pos
-	for effect in flashes:
-		effect.age += delta
-	flashes = flashes.filter(func(effect): return effect.age < effect.life)
-	queue_redraw()
+func _resize() -> void:
+	viewport.size = Vector2i(maxi(2, roundi(size.x)), maxi(2, roundi(size.y)))
+
+
+func _lighting() -> void:
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("427996")
+	sky_material.sky_horizon_color = Color("cbd5c5")
+	sky_material.ground_bottom_color = Color("586342")
+	sky_material.ground_horizon_color = Color("cbd5c5")
+	sky_material.sky_curve = .2
+	sky_material.sun_angle_max = 12
+	var sky := Sky.new()
+	sky.sky_material = sky_material
+	sky.radiance_size = Sky.RADIANCE_SIZE_256
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = .7
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_exposure = 1.0
+	environment.tonemap_white = 5.0
+	environment.ssao_enabled = true
+	environment.ssao_radius = 1.4
+	environment.ssao_intensity = 1.7
+	environment.ssil_enabled = true
+	environment.ssil_intensity = .6
+	environment.glow_enabled = true
+	environment.glow_intensity = .28
+	environment.glow_bloom = .035
+	environment.fog_enabled = true
+	environment.fog_light_color = Color("b8c8be")
+	environment.fog_density = .0007
+	environment.fog_aerial_perspective = .25
+	environment.volumetric_fog_enabled = true
+	environment.volumetric_fog_density = .0007
+	environment.volumetric_fog_albedo = Color("d1d8bf")
+	environment.volumetric_fog_length = 220
+	environment.volumetric_fog_anisotropy = .35
+	var sky_node := WorldEnvironment.new()
+	sky_node.environment = environment
+	world.add_child(sky_node)
+	sunlight.name = "AfternoonSun"
+	sunlight.rotation_degrees = Vector3(-43, -38, 0)
+	sunlight.light_color = Color("fff0cf")
+	sunlight.light_energy = 1.8
+	sunlight.light_angular_distance = .8
+	sunlight.shadow_enabled = true
+	sunlight.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sunlight.directional_shadow_max_distance = 210
+	sunlight.shadow_bias = .1
+	sunlight.shadow_normal_bias = 1.5
+	world.add_child(sunlight)
 
 
 func set_state(value: Dictionary) -> void:
@@ -46,392 +148,336 @@ func set_state(value: Dictionary) -> void:
 
 
 func reset() -> void:
-	displayed.clear()
-	flashes.clear()
+	last_tick = -1
+	follow_id = -1
+	dragging = 0
+	drag_travel = 0.0
+	if is_instance_valid(terrain):
+		terrain.set_wetness(Vector2.ZERO, 0.0)
+	for person in people.values():
+		person.queue_free()
+	people.clear()
+	pick_shapes.clear()
+	for cache in caches.values():
+		cache.queue_free()
+	caches.clear()
+	for effect in effects:
+		effect.node.queue_free()
+	effects.clear()
+	if is_instance_valid(rig):
+		rig.overview()
 
 
-func miracle(kind: String, point: Vector2) -> void:
-	flashes.append({"kind": kind, "pos": point, "age": 0.0, "life": 4.0})
+func _process(delta: float) -> void:
+	if not is_instance_valid(rig):
+		return
+	clock += delta
+	if not camera_input_enabled:
+		dragging = 0
+		drag_travel = 0.0
+	for person in state.get("people", []):
+		var id: int = person.id
+		var at := world_position(person.pos)
+		if not people.has(id):
+			var actor := Villager.new(id, int(person.village))
+			world.add_child(actor)
+			actor.position = at
+			people[id] = actor
+			var body := Area3D.new()
+			body.name = "PickingBody"
+			body.collision_layer = 2
+			body.collision_mask = 0
+			body.monitoring = false
+			body.set_meta("person_id", id)
+			var shape := CollisionShape3D.new()
+			var capsule := CapsuleShape3D.new()
+			capsule.radius = .4
+			capsule.height = 1.85
+			shape.shape = capsule
+			shape.position.y = .925
+			body.add_child(shape)
+			actor.add_child(body)
+			pick_shapes[id] = shape
+		var actor: Node3D = people[id]
+		var travel := at - actor.position
+		var moving := travel.length() > .007 and motion
+		actor.position = actor.position.lerp(at, minf(1, delta * 9)) if motion else at
+		if moving:
+			var heading := atan2(-travel.x, -travel.z)
+			actor.rotation.y = lerp_angle(actor.rotation.y, heading, minf(1, delta * 7))
+		actor.present(person, moving, delta if motion else 0.0)
+		var head: Vector3 = actor.to_local(actor.focus_point())
+		var shape: CollisionShape3D = pick_shapes[id]
+		var body_height := maxf(1.0, head.y + .22)
+		shape.shape.height = body_height
+		shape.position = Vector3(head.x * .5, body_height * .5, head.z * .5)
+		if selected == id:
+			selected_ring.position = actor.position + Vector3(0, .025, 0)
+	selected_ring.visible = selected >= 0
+	if follow_id >= 0 and people.has(follow_id):
+		rig.follow(people[follow_id].focus_point())
+	rig.input_enabled = camera_input_enabled
+	rig.advance(delta)
+	scale_factor = maxf(.2, 50.0 / maxf(rig.distance, .1))
+	if int(state.get("tick", 0)) != last_tick:
+		last_tick = int(state.get("tick", 0))
+		terrain.update_resources(state.get("villages", []), float(state.get("well_water", 0)))
+		var history: Array = state.get("events", [])
+		for index in range(history.size() - 1, -1, -1):
+			var event: Dictionary = history[index]
+			if event.kind == "rain":
+				var wet_at := world_position(event.pos)
+				terrain.set_wetness(
+					Vector2(wet_at.x, wet_at.z), maxf(0, 1 - (last_tick - int(event.tick)) / 100.0)
+				)
+				break
+		_refresh_caches()
+	for village in state.get("villages", []):
+		var label := village_labels[int(village.id)]
+		label.text = (
+			"%s\nFood %d   Water %d" % [village.name, roundi(village.food), roundi(village.water)]
+		)
+		label.position = world_position(village.pos) + Vector3(0, 4.2, 0)
+		label.visible = rig.distance > 23
+		label.pixel_size = clampf(rig.distance * .00046, .014, .085)
+	_update_cursor()
+	_update_effects(delta)
 
 
-func action_mark(action: String, point: Vector2) -> void:
-	if flashes.size() < 14:
-		flashes.append({"kind": action, "pos": point, "age": 0.0, "life": 2.5})
+func world_position(point: Vector2) -> Vector3:
+	var xz := point * .1 - Vector2(50, 32)
+	return Vector3(xz.x, terrain.height_at(xz), xz.y)
 
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		cursor = (event.position - origin) / scale_factor
-	if event is InputEventMouseButton and event.pressed:
-		var point: Vector2 = (event.position - origin) / scale_factor
-		if Rect2(Vector2.ZERO, WORLD).has_point(point):
-			chosen.emit(point, event.button_index)
-		accept_event()
+func simulation_position(point: Vector3) -> Vector2:
+	return (Vector2(point.x, point.z) + Vector2(50, 32)) * 10
 
 
 func to_screen(point: Vector2) -> Vector2:
-	return global_position + origin + point * scale_factor
+	return (
+		global_position + rig.camera.unproject_position(world_position(point) + Vector3(0, .08, 0))
+	)
 
 
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), S.INK.lightened(0.025))
-	scale_factor = minf(size.x / WORLD.x, size.y / WORLD.y)
-	origin = (size - WORLD * scale_factor) / 2
-	draw_set_transform(origin, 0, Vector2.ONE * scale_factor)
-	draw_rect(Rect2(Vector2.ZERO, WORLD), S.GRASS)
-	# Broad strata make a dry valley rather than an empty board.
-	_blob(Vector2(190, 130), Vector2(280, 190), Color("b8b17b"), 3)
-	_blob(Vector2(875, 160), Vector2(240, 190), Color("b6ae7b"), 5)
-	_blob(Vector2(790, 625), Vector2(430, 130), Color("9a9e6e"), 7)
-	_blob(Vector2(120, 615), Vector2(210, 145), Color("939868"), 11)
-	var river := PackedVector2Array(
-		[
-			Vector2(569, 0),
-			Vector2(563, 91),
-			Vector2(602, 174),
-			Vector2(570, 217),
-			Vector2(473, 367),
-			Vector2(458, 434),
-			Vector2(498, 506),
-			Vector2(521, 640)
-		]
+func person_at_pointer() -> int:
+	var start: Vector3 = rig.camera.project_ray_origin(cursor)
+	var direction: Vector3 = rig.camera.project_ray_normal(cursor)
+	var ray := PhysicsRayQueryParameters3D.create(start, start + direction * 650, 1 | 2 | 4)
+	ray.collide_with_areas = true
+	var hit: Dictionary = world.get_world_3d().direct_space_state.intersect_ray(ray)
+	if hit.is_empty():
+		return -1
+	return int(hit.collider.get_meta("person_id", -1))
+
+
+func is_following_person() -> bool:
+	return is_instance_valid(rig) and rig.following
+
+
+func focus_person(id: int) -> void:
+	if people.has(id):
+		follow_id = id
+		rig.focus_person(people[id].focus_point(), people[id].rotation.y)
+
+
+func overview() -> void:
+	follow_id = -1
+	rig.overview()
+
+
+func _gui_input(event: InputEvent) -> void:
+	if not camera_input_enabled:
+		dragging = 0
+		drag_travel = 0.0
+		return
+	if event is InputEventMouseMotion:
+		cursor = event.position
+		if dragging != 0:
+			var required := (
+				MOUSE_BUTTON_MASK_MIDDLE
+				if dragging == MOUSE_BUTTON_MIDDLE
+				else MOUSE_BUTTON_MASK_RIGHT
+			)
+			if (event.button_mask & required) == 0:
+				dragging = 0
+				drag_travel = 0.0
+				return
+			drag_travel += event.relative.length()
+			if dragging == MOUSE_BUTTON_MIDDLE:
+				rig.orbit(event.relative)
+			else:
+				rig.drag_pan(event.relative, size.y)
+			accept_event()
+	if event is InputEventMouseButton:
+		cursor = event.position
+		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and event.pressed:
+			var amount := -1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
+			var anchor: Vector3 = rig.ground_under(cursor)
+			if absf(anchor.x) > 1000:
+				anchor = rig.target
+			rig.zoom(amount * maxf(event.factor, 1), anchor)
+			accept_event()
+		elif event.button_index in [MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]:
+			if event.pressed:
+				dragging = event.button_index
+				drag_travel = 0
+			else:
+				if dragging == MOUSE_BUTTON_RIGHT and drag_travel < 4:
+					chosen.emit(simulation_position(rig.ground_under(cursor)), MOUSE_BUTTON_RIGHT)
+				dragging = 0
+			accept_event()
+		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			chosen.emit(simulation_position(rig.ground_under(cursor)), MOUSE_BUTTON_LEFT)
+			accept_event()
+
+
+func _update_cursor() -> void:
+	cursor_ring.visible = (
+		mode != "observe" and Rect2(Vector2.ZERO, size).has_point(cursor) and camera_input_enabled
 	)
-	draw_polyline(river, Color("898d70"), 58, true)
-	draw_polyline(river, Color("b8b491"), 45, true)
-	draw_polyline(river, Color("cac5a3"), 23, true)
-	for i in range(12):
-		var y := 28.0 + i * 49
-		var x := 526.0 + sin(y * 0.013) * 42
-		draw_line(Vector2(x, y), Vector2(x + 10, y + 11), Color("a6a47f"), 1.5, true)
-	var road := PackedVector2Array(
-		[
-			Vector2(200, 359),
-			Vector2(319, 380),
-			Vector2(450, 432),
-			Vector2(575, 415),
-			Vector2(745, 356),
-			Vector2(800, 363)
-		]
-	)
-	draw_polyline(road, Color("c8bd8d"), 23, true)
-	draw_polyline(
-		PackedVector2Array(
-			[
-				Vector2(250, 343),
-				Vector2(365, 289),
-				Vector2(500, 280),
-				Vector2(640, 280),
-				Vector2(760, 340)
-			]
-		),
-		Color("c6ba87"),
-		15,
-		true
-	)
-	# A stone ford makes exchange between the two settlements visible.
-	for i in range(7):
-		draw_style_box(
-			S.box(Color("b7b297"), Color("8f947d"), 2),
-			Rect2(445 + i * 9, 412 + sin(i * .5) * 4, 7, 27)
-		)
-	for item in decor:
-		var p: Vector2 = item.pos
-		if (
-			p.distance_to(Vector2(500, 300)) < 210
-			or p.distance_to(Vector2(240, 340)) < 155
-			or p.distance_to(Vector2(760, 340)) < 155
-		):
-			continue
-		if item.kind == 0 and (p.y < 165 or p.y > 520):
-			_tree(p, item.size * .07 + .5)
-		else:
-			_grass(p, item.size)
-	for village in state.get("villages", []):
-		_village(village)
-	_shrine()
-	_common_well()
-	# Resources, if represented as ground caches by the simulation.
+	if not cursor_ring.visible:
+		return
+	cursor_world = rig.ground_under(cursor)
+	if absf(cursor_world.x) > 55 or absf(cursor_world.z) > 37:
+		cursor_ring.hide()
+		return
+	if cursor_world.distance_to(last_ring) < .05 and last_ring_mode == mode:
+		return
+	last_ring = cursor_world
+	last_ring_mode = mode
+	cursor_mesh.clear_surfaces()
+	var material := _material(S.RAIN if mode == "rain" else S.WHEAT, true)
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	cursor_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, material)
+	for i in range(128):
+		var a := i * TAU / 128
+		var b := (i + 1) * TAU / 128
+		var vertices: Array[Vector3] = []
+		for pair in [[a, 14.92], [a, 15.08], [b, 14.92], [b, 15.08]]:
+			var p: Vector2 = (
+				Vector2(cursor_world.x, cursor_world.z)
+				+ Vector2(cos(pair[0]), sin(pair[0])) * pair[1]
+			)
+			vertices.append(Vector3(p.x, terrain.height_at(p) + .08, p.y))
+		for index in [0, 2, 1, 1, 2, 3]:
+			cursor_mesh.surface_add_vertex(vertices[index])
+	cursor_mesh.surface_end()
+
+
+func miracle(kind: String, point: Vector2) -> void:
+	last_tick = -1  # Casts also change visible resources while simulation time is paused.
+	var node := Node3D.new()
+	node.position = world_position(point)
+	world.add_child(node)
+	if kind == "rain" and not effects_static:
+		var rain := MultiMeshInstance3D.new()
+		var drops := MultiMesh.new()
+		drops.transform_format = MultiMesh.TRANSFORM_3D
+		var drop := CylinderMesh.new()
+		drop.top_radius = .032
+		drop.bottom_radius = .032
+		drop.height = 1.2
+		drop.radial_segments = 4
+		drop.rings = 1
+		drop.material = _material(Color(.65, .83, .88, .62), true)
+		drops.mesh = drop
+		drops.instance_count = 260
+		rain.multimesh = drops
+		rain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.add_child(rain)
+		effects.append({"node": node, "kind": kind, "age": 0.0, "life": 5.0, "rain": drops})
+	else:
+		var ring := _ring(.5, S.WHEAT if kind == "food" else S.RAIN)
+		node.add_child(ring)
+		effects.append({"node": node, "kind": kind, "age": 0.0, "life": 2.5, "ring": ring})
+	if kind == "rain" and terrain.has_method("set_wetness"):
+		terrain.set_wetness(Vector2(node.position.x, node.position.z), 1.0)
+
+
+func _update_effects(delta: float) -> void:
+	for effect in effects:
+		effect.age += delta
+		if effect.has("rain"):
+			for i in range(260):
+				var angle := i * 2.39996
+				var radius := sqrt(float(i) / 260) * 15
+				var at := Vector3(
+					cos(angle) * radius,
+					13 - fmod(effect.age * 17 + i * .43, 13),
+					sin(angle) * radius
+				)
+				effect.rain.set_instance_transform(i, Transform3D(Basis.IDENTITY, at))
+		if effect.has("ring"):
+			effect.ring.scale = Vector3.ONE * (1 + effect.age * 5)
+		if effect.age >= effect.life:
+			effect.node.queue_free()
+	effects = effects.filter(func(effect): return effect.age < effect.life)
+
+
+func action_mark(action: String, person_id: int) -> void:
+	if people.has(person_id):
+		people[person_id].cue(action)
+
+
+func _refresh_caches() -> void:
 	for cache in state.get("caches", []):
-		if cache.get("food", cache.get("amount", 0)) > 0:
-			_basket(cache.pos, 1.3)
-	for event in state.get("events", []):
-		if event.kind == "rain":
-			var age := int(state.get("tick", 0)) - int(event.tick)
-			if age < 100:
-				var wet := Color("799d78")
-				wet.a = maxf(0, .20 * (1 - age / 100.0))
-				draw_circle(event.pos, 150, wet)
-		elif int(state.get("tick", 0)) - int(event.tick) < 35:
-			_basket(event.pos, 1.1)
-	_draw_cause()
-	var sorted: Array = state.get("people", []).duplicate()
-	sorted.sort_custom(func(a, b): return a.pos.y < b.pos.y)
-	for person in sorted:
-		_person(person)
-	for effect in flashes:
-		_effect(effect)
-	if (
-		cursor.x >= 0
-		and cursor.y >= 0
-		and cursor.x <= WORLD.x
-		and cursor.y <= WORLD.y
-		and mode != "observe"
-	):
-		var color := S.RAIN if mode == "rain" else S.WHEAT
-		draw_circle(cursor, 150, Color(color, .09))
-		draw_arc(cursor, 150, 0, TAU, 64, Color(color, .8), 2.5, true)
-		draw_line(cursor - Vector2(10, 0), cursor + Vector2(10, 0), color, 2)
-		draw_line(cursor - Vector2(0, 10), cursor + Vector2(0, 10), color, 2)
-		draw_circle(cursor, 4, color)
-	_text(Vector2(32, 42), "The dry valley", 23, Color("4b5b47"), S.DISPLAY)
-	_text(Vector2(32, 62), "Two villages. One last week without rain.", 13, Color("576048"))
-	_text(Vector2(880, 38), "N", 15, Color("5d674e"))
-	draw_line(Vector2(887, 47), Vector2(887, 73), Color("677358"), 1.5)
-	draw_colored_polygon(
-		PackedVector2Array([Vector2(887, 45), Vector2(882, 56), Vector2(892, 56)]), Color("677358")
-	)
-	draw_set_transform(Vector2.ZERO)
+		var id: int = cache.event_id
+		if not caches.has(id):
+			var basket := Node3D.new()
+			basket.position = world_position(cache.pos)
+			var body := MeshInstance3D.new()
+			var cylinder := CylinderMesh.new()
+			cylinder.top_radius = .48
+			cylinder.bottom_radius = .36
+			cylinder.height = .5
+			cylinder.radial_segments = 24
+			cylinder.material = _material(Color("967044"))
+			body.mesh = cylinder
+			body.position.y = .25
+			basket.add_child(body)
+			for i in range(10):
+				var band := _ring(.4 + i * .008, Color("61492d"))
+				band.position.y = i * .052
+				basket.add_child(band)
+			var grain := MeshInstance3D.new()
+			grain.name = "Grain"
+			var pile := SphereMesh.new()
+			pile.radius = .39
+			pile.height = .19
+			pile.material = _material(Color("d0b46d"))
+			grain.mesh = pile
+			grain.position.y = .48
+			basket.add_child(grain)
+			world.add_child(basket)
+			caches[id] = basket
+		caches[id].visible = cache.food > .1
+		caches[id].get_node("Grain").position.y = .18 + .30 * clampf(cache.food / 38.0, 0, 1)
 
 
-func _blob(center: Vector2, extent: Vector2, color: Color, phase: float) -> void:
-	var points := PackedVector2Array()
-	for i in range(48):
-		var angle := i * TAU / 48
-		var length := .93 + .07 * sin(i * 1.6 + phase)
-		points.append(center + Vector2(cos(angle), sin(angle)) * extent * length)
-	draw_colored_polygon(points, color)
+func _ring(radius: float, color: Color) -> MeshInstance3D:
+	var node := MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = radius
+	ring.outer_radius = radius + .026
+	ring.rings = 32
+	ring.ring_segments = 6
+	ring.material = _material(color)
+	node.mesh = ring
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return node
 
 
-func _grass(p: Vector2, length: float) -> void:
-	var color := Color("83885b")
-	for i in range(3):
-		draw_line(p + Vector2(i * 3, 0), p + Vector2(i * 3 - 2, -length), color, 1, true)
+func _material(color: Color, transparent: bool = false) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = .75
+	if transparent:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	return material
 
 
-func _tree(p: Vector2, s: float) -> void:
-	draw_set_transform(origin + p * scale_factor, 0, Vector2.ONE * scale_factor * s)
-	draw_circle(Vector2(7, 8), 22, Color(0.18, .26, .2, .16))
-	draw_line(Vector2.ZERO, Vector2(0, -31), Color("59644b"), 5, true)
-	draw_circle(Vector2(-12, -23), 17, Color("6e8053"))
-	draw_circle(Vector2(10, -31), 18, Color("819459"))
-	draw_circle(Vector2(-5, -40), 17, Color("93a064"))
-	draw_circle(Vector2(1, -46), 12, Color("a3ac6f"))
-	draw_set_transform(origin, 0, Vector2.ONE * scale_factor)
-
-
-func _village(v: Dictionary) -> void:
-	var p: Vector2 = v.pos
-	var color := S.ALDER if int(v.id) == 0 else S.SEDGE
-	var field := p + Vector2(-60, 115)
-	var growth: float = clampf(float(v.get("crop", 0)) / 100, 0, 1)
-	draw_style_box(
-		S.box(Color("929367"), Color("777f56"), 4), Rect2(field - Vector2(7, 7), Vector2(136, 68))
-	)
-	for row in range(5):
-		for col in range(12):
-			var stalk := field + Vector2(col * 10, row * 11)
-			draw_line(
-				stalk,
-				stalk - Vector2(2, 4 + growth * 9),
-				Color("e1d092").lerp(Color("84ae77"), growth),
-				2,
-				true
-			)
-	for i in range(6):
-		var angle := -PI + i * PI / 5
-		var home := p + Vector2(cos(angle) * 100, sin(angle) * 77 - 15)
-		_house(home, color, i)
-	# Central well; its water height is a direct resource readout.
-	draw_circle(p + Vector2(5, 7), 24, Color(.15, .2, .14, .18))
-	draw_circle(p, 22, Color("e1d5af"))
-	draw_circle(p, 15, Color("656c59"))
-	draw_circle(p, 4 + clampf(float(v.water) / 100, 0, 1) * 10, S.RAIN.darkened(.2))
-	_basket(p + Vector2(-42, 16), .75 + clampf(float(v.food) / 100, 0, 1) * .7)
-	_text(p + Vector2(-30, 213), str(v.name), 31, S.INK, S.DISPLAY)
-	var supplies := "Food %d  /  Water %d" % [roundi(float(v.food)), roundi(float(v.water))]
-	_text(p + Vector2(-75, 233), supplies, 15, Color("3e5245"))
-	draw_line(p + Vector2(-71, 242), p + Vector2(71, 242), Color(color, .7), 2)
-
-
-func _house(p: Vector2, color: Color, index: int) -> void:
-	draw_style_box(
-		S.box(Color(.14, .22, .16, .17), Color.TRANSPARENT, 8),
-		Rect2(p + Vector2(-13, -4), Vector2(52, 29))
-	)
-	draw_rect(Rect2(p + Vector2(-20, -17), Vector2(40, 32)), Color("ded6ae"))
-	draw_rect(Rect2(p + Vector2(4, -17), Vector2(16, 32)), Color("c8c39e"))
-	var roof := PackedVector2Array(
-		[p + Vector2(-29, -13), p + Vector2(-5, -39), p + Vector2(29, -15), p + Vector2(5, -20)]
-	)
-	draw_colored_polygon(roof, color.darkened(.12 if index % 2 else .02))
-	draw_polyline(PackedVector2Array([roof[0], roof[1], roof[2]]), color.lightened(.2), 2, true)
-	draw_rect(Rect2(p + Vector2(-6, -3), Vector2(10, 18)), Color("6a7360"))
-	draw_line(p + Vector2(-21, 15), p + Vector2(22, 15), Color("a4a784"), 3)
-
-
-func _shrine() -> void:
-	var p := Vector2(500, 280)
-	draw_circle(p + Vector2(0, 4), 38, Color("a8a581"))
-	draw_arc(p, 33, 0, TAU, 32, Color("d5d0ad"), 7, true)
-	draw_colored_polygon(
-		PackedVector2Array(
-			[
-				p + Vector2(-13, 3),
-				p + Vector2(-9, -45),
-				p + Vector2(0, -53),
-				p + Vector2(13, -39),
-				p + Vector2(16, 3)
-			]
-		),
-		Color("d9d6b7")
-	)
-	draw_colored_polygon(
-		PackedVector2Array(
-			[p + Vector2(0, -53), p + Vector2(13, -39), p + Vector2(16, 3), p + Vector2(4, 3)]
-		),
-		Color("bbbea2")
-	)
-	draw_arc(p + Vector2(0, -24), 6, 0, TAU, 20, Color("768975"), 2, true)
-	_text(p + Vector2(-43, 58), "The old shrine", 17, Color("4d5e4c"), S.DISPLAY)
-
-
-func _common_well() -> void:
-	var at := Vector2(500, 405)
-	draw_circle(at + Vector2(3, 4), 18, Color(.15, .2, .14, .18))
-	draw_circle(at, 16, Color("d2cfad"))
-	draw_circle(at, 11, Color("656c59"))
-	draw_circle(at, maxf(2, 10 * float(state.get("well_water", 0)) / 160), S.RAIN.darkened(.25))
-	_text(
-		at + Vector2(30, 25),
-		"Shared spring · %d" % roundi(float(state.get("well_water", 0))),
-		14,
-		Color("4d5e4c")
-	)
-
-
-func _basket(p: Vector2, s: float) -> void:
-	draw_circle(p + Vector2(4, 4), 11 * s, Color(.2, .22, .12, .16))
-	draw_style_box(
-		S.box(Color("a78950"), Color("786b44"), 3),
-		Rect2(p - Vector2(10, 5) * s, Vector2(20, 13) * s)
-	)
-	for i in range(4):
-		draw_circle(p + Vector2(-6 + i * 4, -4 + sin(i) * 2) * s, 3.5 * s, S.WHEAT)
-
-
-func _person(p: Dictionary) -> void:
-	var at: Vector2 = displayed.get(p.id, p.pos)
-	var walking: bool = at.distance_to(p.target) > 3
-	var bob := sin(clock * 9 + int(p.id)) * 1.4 if walking and motion else 0.0
-	var color := S.ALDER if int(p.village) == 0 else S.SEDGE
-	if selected == int(p.id):
-		draw_circle(at, 19, Color(S.PAPER, .3))
-		draw_arc(at, 19, 0, TAU, 30, S.PAPER, 2, true)
-	draw_circle(at + Vector2(4, 3), 8, Color(.16, .22, .15, .25))
-	var foot := sin(clock * 9 + int(p.id)) * 2.8 if walking and motion else 1.0
-	draw_line(at + Vector2(-2, 0), at + Vector2(-3, 5 + foot), S.INK, 2, true)
-	draw_line(at + Vector2(2, 0), at + Vector2(3, 5 - foot), S.INK, 2, true)
-	var body := PackedVector2Array(
-		[
-			at + Vector2(-4, -11 + bob),
-			at + Vector2(4, -11 + bob),
-			at + Vector2(7, 1),
-			at + Vector2(-7, 1)
-		]
-	)
-	draw_colored_polygon(body, color)
-	draw_line(at + Vector2(-3, -8 + bob), at + Vector2(-5, -1), color.lightened(.35), 2, true)
-	var skin := Color("e7c49b").lerp(Color("94744f"), (int(p.id) % 5) / 5.0)
-	draw_circle(at + Vector2(0, -15 + bob), 4.5, skin)
-	draw_arc(at + Vector2(0, -16 + bob), 4.5, PI, TAU, 12, Color("525b42"), 2.5, true)
-	var action: String = p.action
-	var icon := at + Vector2(13, -20)
-	if action == "tell":
-		draw_style_box(S.box(S.PAPER, Color.TRANSPARENT, 4), Rect2(icon, Vector2(18, 12)))
-		for i in range(3):
-			draw_circle(icon + Vector2(4 + i * 5, 6), 1, S.SLATE)
-	elif action == "ritual":
-		draw_arc(at + Vector2(0, -22), 8, PI, TAU, 16, S.WHEAT, 2, true)
-		if motion:
-			draw_circle(
-				at + Vector2(sin(clock * 2 + int(p.id)) * 4, -28 - fmod(clock * 9 + int(p.id), 12)),
-				1.5,
-				S.PAPER
-			)
-	elif action == "share":
-		_basket(at + Vector2(12, -2), .55)
-		draw_line(at + Vector2(9, -9), at + Vector2(17, -9), S.PAPER, 2, true)
-	elif action == "fetch":
-		_basket(at + Vector2(10, -2), .45)
-	elif action == "avoid":
-		draw_line(icon, icon + Vector2(8, 6), S.SEDGE.darkened(.25), 2)
-		draw_line(icon + Vector2(8, 0), icon + Vector2(0, 6), S.SEDGE.darkened(.25), 2)
-	if selected == int(p.id):
-		var caption: String = str(p.name) + " · " + action
-		var width := S.BODY.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-		draw_style_box(
-			S.box(Color(S.INK, .94), Color.TRANSPARENT, 4),
-			Rect2(at + Vector2(-width / 2 - 7, 16), Vector2(width + 14, 26))
-		)
-		_text(at + Vector2(-width / 2, 34), caption, 15, S.PAPER)
-
-
-func _draw_cause() -> void:
-	var people: Array = state.get("people", [])
-	if selected < 0 or selected >= people.size():
-		return
-	var person: Dictionary = people[selected]
-	if person.memories.is_empty():
-		return
-	var memory: Dictionary = person.memories.back()
-	var destination: Vector2 = person.pos
-	var found := false
-	if memory.source == "report" and int(memory.via) >= 0 and int(memory.via) < people.size():
-		destination = people[int(memory.via)].pos
-		found = true
-	else:
-		for event in state.get("events", []):
-			if event.id == memory.event_id:
-				destination = event.pos
-				found = true
-	if found:
-		draw_dashed_line(person.pos, destination, Color(S.PAPER, .55), 1.5, 7, true)
-
-
-func _effect(effect: Dictionary) -> void:
-	var p: Vector2 = effect.pos
-	var age: float = effect.age
-	var fade: float = clampf(1 - age / float(effect.life), 0, 1)
-	if effects_static:
-		if effect.kind in ["rain", "food"]:
-			draw_circle(p, 150, Color(S.RAIN if effect.kind == "rain" else S.WHEAT, .14 * fade))
-		return
-	if effect.kind == "rain":
-		draw_circle(p, 150, Color(S.RAIN, .12 * fade))
-		for i in range(70):
-			var angle := i * 2.39996
-			var spread := sqrt(float(i) / 70.0) * 140
-			var drop := p + Vector2(cos(angle), sin(angle)) * spread
-			drop.y -= fmod(age * 95 + i * 7, 52)
-			draw_line(drop, drop + Vector2(-3, 13), Color(S.RAIN.lightened(.35), fade), 1.7, true)
-		draw_arc(p, 40 + age * 25, 0, TAU, 50, Color(S.RAIN, fade * .6), 2, true)
-	elif effect.kind == "food":
-		draw_arc(p, age * 32 + 10, 0, TAU, 50, Color(S.WHEAT, fade), 3, true)
-		for i in range(8):
-			var angle := i * TAU / 8
-			draw_circle(
-				p + Vector2(cos(angle), sin(angle)) * (age * 18 + 12) - Vector2(0, age * 5),
-				2.5,
-				Color(S.PAPER, fade)
-			)
-	else:
-		var captions := {
-			"share": "shared food", "ritual": "a ritual", "tell": "a story", "avoid": "turned away"
-		}
-		var text: String = captions.get(effect.kind, "")
-		if text != "":
-			_text(p + Vector2(-20, -35 - age * 9), text, 13, Color(S.INK, fade))
-
-
-func _text(at: Vector2, text: String, font_size: int, color: Color, font: Font = S.BODY) -> void:
-	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+func camera_evidence() -> Dictionary:
+	var result: Dictionary = rig.evidence()
+	result["followed_person"] = follow_id if rig.following else -1
+	return result
