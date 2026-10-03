@@ -2,6 +2,8 @@
 
 The delivered experience is the 3D rebuild, not the earlier flat-map prototype. The model stays the same. Tests run against the real Godot implementation and the actual installed game.
 
+Verified: 344 local checks and 37 target checks passed. The 80.981-second recording contains 2,429 decoded video frames at 1280×800. Its pack SHA-256 is `827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b`.
+
 ## Local checks
 
 Run `./tools/check.py`. The command imports the real project, runs engine tests and real subprocess/filesystem tests, then checks GDScript/Python formatting and lint. It fails on Godot error output even when Godot returns zero.
@@ -32,12 +34,14 @@ Verified target behavior includes:
 - Completed sharing, rituals, reports, and avoidance in the actual seven-day run.
 - An exact accepted-command replay with the same complete final-state digest, then no intervention reaching a different ending.
 - Restart and cold relaunch restoring the exact initial seeded state. Normal exits return zero.
-- Game audio captured from its dedicated sink, then silence after the real mute control. This proves signal routing and mute, not human listening quality.
+- Game audio captured from its dedicated sink measured PCM16 RMS 123.37 and peak 289. The real mute control reduced both to zero. This proves signal routing and mute, not human listening quality.
 - The BW2 play executable hash and running process IDs match before and after. The local BW2 repository remains clean. No Korri settings or services were changed.
+
+The actual mixed-miracle run completed eight deliveries, 12 rituals, 75 reports, and 14 withdrawal decisions. Its replay matched the complete final digest. Doing nothing produced no supernatural memories and reached a different ending. The mixed run exhausted 21 people versus 18 with no intervention: journeys and rituals displaced useful work. This is a tradeoff, not a claim that intervention always helps.
 
 The six rendered window sizes are 1440×900, 1024×768, 720×900, 360×720, 1280×300, and 320×240. Small windows use a scrollable person account and a window-level menu. The world is harder to read there, but controls remain accessible.
 
-Recorded FPS samples are in target snapshots. They are short play observations, not frame-time percentiles or a general hardware benchmark. Godot warns that this headless compositor lacks optional icon and FIFO protocols. No script, shader, or engine error is accepted.
+Recorded FPS samples are in target snapshots. The saved portrait, face, landscape, and ending samples each reported 62 FPS. They are short play observations, not frame-time percentiles or a general hardware benchmark. Godot warns that this headless compositor lacks optional icon and FIFO protocols. No script, shader, or engine error is accepted.
 
 ## Recording and captures
 

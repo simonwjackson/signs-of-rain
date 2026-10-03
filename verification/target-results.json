@@ -195,25 +195,25 @@
       },
       "fps": 62.0,
       "camera": {
-        "distance": 1.60103648208435,
+        "distance": 1.60099946251249,
         "far": 650.0,
         "followed_person": 0,
         "following": true,
         "near": 0.0599999986588955,
-        "pitch": 12.0002241794649,
+        "pitch": 12.0002161725461,
         "position": [
-          -22.9503631591797,
-          2.02330589294434,
-          0.433932304382324
+          -22.950366973877,
+          2.0232982635498,
+          0.433969020843506
         ],
         "target": [
-          -22.9504051208496,
-          1.69042563438416,
-          1.99998092651367
+          -22.9504089355469,
+          1.69042575359344,
+          1.99998152256012
         ],
         "target_distance": 1.6,
-        "terrain_clearance": 1.81081070817069,
-        "yaw": 3.14156529206304
+        "terrain_clearance": 1.81080291249559,
+        "yaw": 3.14156626932259
       }
     },
     "camera-face": {
@@ -261,16 +261,16 @@
       },
       "fps": 62.0,
       "camera": {
-        "distance": 0.923972301484746,
+        "distance": 0.934938755613714,
         "far": 650.0,
         "followed_person": 0,
         "following": true,
         "near": 0.0599999986588955,
-        "pitch": 12.0000000241966,
+        "pitch": 12.000000023296,
         "position": [
           -22.9506168365479,
-          1.8825318813324,
-          1.09621834754944
+          1.88481199741364,
+          1.08549153804779
         ],
         "target": [
           -22.9506168365479,
@@ -278,8 +278,8 @@
           1.99999964237213
         ],
         "target_distance": 0.85,
-        "terrain_clearance": 1.66328137947428,
-        "yaw": 3.14159265063656
+        "terrain_clearance": 1.66574872813888,
+        "yaw": 3.14159265074647
       }
     },
     "camera-landscape": {
@@ -327,30 +327,30 @@
       },
       "fps": 62.0,
       "camera": {
-        "distance": 179.997482568264,
+        "distance": 129.228864821134,
         "far": 650.0,
         "followed_person": 0,
         "following": true,
         "near": 0.0599999986588955,
-        "pitch": 47.9994892701289,
+        "pitch": 37.5411009491309,
         "position": [
-          -22.9505462646484,
-          135.453552246094,
-          -118.443016052246
+          39.8740539550781,
+          80.4335021972656,
+          -78.9486846923828
         ],
         "target": [
           -22.9506168365479,
           1.69042730331421,
           1.99999964237213
         ],
-        "target_distance": 180.0,
-        "terrain_clearance": 110.354222158984,
-        "yaw": 3.14159206300679
+        "target_distance": 129.230939489283,
+        "terrain_clearance": 65.131684372423,
+        "yaw": 2.48159265385933
       }
     },
     "intervened-ending": {
       "tick": 560,
-      "digest": "89751ba6bd52c1250a65b63aca8a8959d4da3d86093aa9bb750eba675acb41a2",
+      "digest": "8e60750fbb28313b8e02a4d0115eff98b2ef65670878883df9c83fc35148f9d1",
       "commands": [
         {
           "kind": "rain",
@@ -363,10 +363,10 @@
         {
           "kind": "food",
           "pos": [
-            489.500122070312,
+            489.500091552734,
             288.879669189453
           ],
-          "tick": 82
+          "tick": 89
         },
         {
           "kind": "rain",
@@ -447,8 +447,8 @@
         ],
         "target": [
           -0.0,
-          1.47885453701019,
-          0.0
+          1.4788544178009,
+          -0.0
         ],
         "target_distance": 110.0,
         "terrain_clearance": 51.5419403870599,
@@ -457,7 +457,7 @@
     },
     "replay-ending": {
       "tick": 560,
-      "digest": "89751ba6bd52c1250a65b63aca8a8959d4da3d86093aa9bb750eba675acb41a2",
+      "digest": "8e60750fbb28313b8e02a4d0115eff98b2ef65670878883df9c83fc35148f9d1",
       "commands": [
         {
           "kind": "rain",
@@ -470,10 +470,10 @@
         {
           "kind": "food",
           "pos": [
-            489.500122070312,
+            489.500091552734,
             288.879669189453
           ],
-          "tick": 82
+          "tick": 89
         },
         {
           "kind": "rain",
@@ -554,8 +554,8 @@
         ],
         "target": [
           -0.0,
-          1.47885453701019,
-          0.0
+          1.4788544178009,
+          -0.0
         ],
         "target_distance": 110.0,
         "terrain_clearance": 51.5419403870599,
@@ -620,8 +620,8 @@
         ],
         "target": [
           -0.0,
-          1.47885453701019,
-          0.0
+          1.4788544178009,
+          -0.0
         ],
         "target_distance": 110.0,
         "terrain_clearance": 51.5419403870599,
@@ -667,7 +667,9 @@
     "key 57",
     "key 33",
     "key 33",
+    "key 46",
     "key 15",
+    "key 47",
     "key 4",
     "move -10000 -10000",
     "move 719 441",
@@ -710,18 +712,18 @@
     "title": "Signs of Rain",
     "engine": "4.6.1.stable.nixpkgs.14d19694e",
     "runtime": "/nix/store/prgpch05xca3nvd945kz5kbixpjdwis1-godot-4.6.1-stable",
-    "commit": "a005e8dd92af14b96700f5436eb536d0bee27ae1",
+    "commit": "d64b559113a2ac00047de4e55e2551bfe95b04ed",
     "uncommitted_source": false,
     "files": {
       "README.md": "86d7abe3bb5f9b93c4ba92bb735abb9bf1e512e42e0d12208657c404da083aeb",
-      "controls.md": "4233cd4f23e38a28c85f977446cc49088d4a39302b60c83d97a9585df1042089",
+      "controls.md": "67127505c17700903f3bc5c74598b81a021d586832ca55c35c5a8895ce5fba26",
       "launch": "66e7009a7666a71a5d3527f3b50993fd47d5dfa31263ad73fc53772b1d5fbbe1",
       "licenses/Alegreya-OFL.txt": "f6f60d5d4cf4f4b1fc4e41353c897a2f5a16e6396c0cd8fa8bdfd2f4586a9a68",
       "licenses/Lato-OFL.txt": "bac163b7ef3044511d80804165ff7ca3df6677da83ed32f21fa6c17041d6fa28",
       "licenses/characters-anim-LICENSE.txt": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061",
       "licenses/characters-base-LICENSE.txt": "0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e",
       "licenses/characters-outfits-LICENSE.txt": "2202cc2f608c4210790b112e5f121bc2e7f8dced7b5b1c7f4be6203461bdebbb",
-      "signs-of-rain.pck": "fdb1a62fc503a139bea87a21b93271e2b41d10c3031e13485247e42c4c71afcd"
+      "signs-of-rain.pck": "827612ea24cf7a4190bed39ac236ed8aacb62f432c9cb4e7485b46762ba64f9b"
     }
   },
   "preserved_before": {
@@ -735,17 +737,17 @@
     "bw2_executable_sha256": "ca745211ac9c63c439493ff14fa27507c4b99d199af4fd2b48577bccfd851db2"
   },
   "audio_on": {
-    "rms_pcm16": 122.05971205101392,
-    "peak_pcm16": 286,
+    "rms_pcm16": 123.37423163345245,
+    "peak_pcm16": 289,
     "samples": 190080,
-    "source": "signs_rain_683043.monitor",
-    "sha256": "06838d07e343205b6d6a08b3859f10a1d3dda398b5b862376fecc2e8019bc42a"
+    "source": "signs_rain_684365.monitor",
+    "sha256": "85e1b4e19b889b7aaa79425cedd3f6fb9ec2f8b2e96bd08d9dfca40ebad5d3b8"
   },
   "audio_muted": {
     "rms_pcm16": 0.0,
     "peak_pcm16": 0,
     "samples": 190080,
-    "source": "signs_rain_683043.monitor",
+    "source": "signs_rain_684365.monitor",
     "sha256": "ee312bbe7254413536c8e8ead8fa92a2636a98c7dc902cef3dc219bf7ebcbdf4"
   },
   "preserved_after": {
@@ -870,8 +872,8 @@
       "format_long_name": "Matroska / WebM",
       "start_time": "-0.021000",
       "duration": "73.173000",
-      "size": "61186890",
-      "bit_rate": "6689559",
+      "size": "63194054",
+      "bit_rate": "6909002",
       "probe_score": 100,
       "tags": {
         "ENCODER": "Lavf62.3.100"
