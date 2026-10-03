@@ -5,6 +5,8 @@ const Valley = preload("res://game/valley.gd")
 const Hud = preload("res://ui/hud.gd")
 const Sound = preload("res://game/sound.gd")
 const Layout = preload("res://ui/layout.gd")
+const Controller = preload("res://game/controller.gd")
+const FrameTimes = preload("res://game/frame_times.gd")
 const TICK_SECONDS := 0.5
 var simulation: RefCounted
 var valley: Control
@@ -32,6 +34,11 @@ var session_inputs: Array[Dictionary] = []
 var restart_count := 0
 var previous_digest := ""
 var tick_on_restart := 0
+var controller = Controller.new()
+var controller_active := false
+var handheld := false
+var modal_scroll := 0.0
+var frame_times = FrameTimes.new()
 
 
 func _ready() -> void:
@@ -48,11 +55,16 @@ func _ready() -> void:
 			intro = false
 		elif argument == "--mute":
 			muted = true
+		elif argument == "--handheld":
+			handheld = true
 		elif argument.begins_with("--graphics="):
 			graphics = argument.trim_prefix("--graphics=")
 	valley = Valley.new()
 	add_child(valley)
 	valley.set_graphics(graphics)
+	if handheld:
+		valley.set_handheld(true)
+	Input.joy_connection_changed.connect(_controller_connection)
 	valley.chosen.connect(_world_input)
 	hud = Hud.new()
 	hud.size = size
@@ -90,10 +102,19 @@ func _arrange() -> void:
 	hud.position = usable.position
 	hud.size = usable.size
 	hud.arrange()
+	valley.controller_point = hud.controller_world_point(
+		Rect2(valley.position - hud.position, valley.size)
+	)
 
 
 func _sync_input_gate() -> void:
-	valley.camera_input_enabled = not hud.sheet_open()
+	var enabled: bool = not hud.sheet_open()
+	if valley.camera_input_enabled != enabled:
+		controller.clear()
+		modal_scroll = 0
+	valley.camera_input_enabled = enabled
+	if not enabled and controller_active:
+		hud.focus_sheet.call_deferred()
 
 
 func _snapshot() -> Dictionary:
@@ -125,6 +146,9 @@ func _refresh() -> void:
 func _process(delta: float) -> void:
 	if simulation == null:
 		return
+	if evidence_path != "":
+		frame_times.record(delta)
+	var advanced := false
 	if not paused and not simulation.ended:
 		elapsed += minf(delta, 0.25) * speed
 		while elapsed >= TICK_SECONDS and not simulation.ended:
@@ -135,7 +159,19 @@ func _process(delta: float) -> void:
 			if replaying:
 				_apply_replay()
 			_after_tick()
-	_refresh()
+			advanced = true
+	if advanced:
+		_refresh()
+	if controller_active:
+		if hud.sheet_open():
+			if absf(modal_scroll) > Controller.DEADZONE:
+				hud.scroll_controller(modal_scroll, delta)
+		else:
+			var movement: Dictionary = controller.movement()
+			if movement.scrolling and selected >= 0:
+				hud.scroll_controller(movement.orbit.y, delta)
+			else:
+				valley.controller_motion(movement, delta)
 	evidence_elapsed += delta
 	if evidence_elapsed >= 1.0:
 		evidence_elapsed = 0
@@ -353,6 +389,13 @@ func _save_replay() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		_route_controller(event)
+		return
+	if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
+		controller_active = false
+		controller.clear()
+		valley.controller_aim = false
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		_route_touch(event)
 		return
@@ -383,6 +426,67 @@ func _input(event: InputEvent) -> void:
 		_command(keys[event.keycode])
 	else:
 		return
+	get_viewport().set_input_as_handled()
+
+
+func _controller_connection(id: int, connected: bool) -> void:
+	if not connected:
+		controller.release_device(id)
+		if controller.device < 0:
+			controller_active = false
+			valley.controller_aim = false
+
+
+func _route_controller(event: InputEvent) -> void:
+	if controller.device >= 0 and event.device != controller.device:
+		return
+	var first := not controller_active
+	controller_active = true
+	hud.controller_controls = true
+	valley.controller_aim = true
+	var action: String = controller.consume(event)
+	if first:
+		_refresh()
+	if hud.sheet_open():
+		controller.clear()
+		if event is InputEventJoypadMotion and event.axis == JOY_AXIS_RIGHT_Y:
+			modal_scroll = event.axis_value
+		hud.focus_sheet()
+		if (
+			event is InputEventJoypadButton
+			and event.pressed
+			and (
+				event.button_index
+				in [
+					JOY_BUTTON_DPAD_UP,
+					JOY_BUTTON_DPAD_LEFT,
+					JOY_BUTTON_DPAD_DOWN,
+					JOY_BUTTON_DPAD_RIGHT
+				]
+			)
+		):
+			hud.focus_sheet(
+				-1 if event.button_index in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_LEFT] else 1
+			)
+		elif action == "back" or action == "menu":
+			_back()
+		elif action == "pause":
+			_command("begin" if intro else "close")
+		else:
+			# Godot's native focus/accept actions retain controller events in sheets.
+			return
+	elif action == "activate":
+		valley.controller_activate()
+	elif action == "back":
+		_back()
+	elif action == "menu":
+		hud.show_controls()
+	elif action == "previous":
+		_select(posmod(selected - 1, 24))
+	elif action == "next":
+		_select((selected + 1) % 24)
+	elif action != "":
+		_command(action)
 	get_viewport().set_input_as_handled()
 
 
@@ -429,6 +533,8 @@ func _notification(what: int) -> void:
 		_back()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_instance_valid(valley):
 		valley.cancel_camera_input()
+		controller.clear()
+		modal_scroll = 0
 
 
 func _json_value(value: Variant) -> Variant:
@@ -473,6 +579,13 @@ func _emit_evidence() -> void:
 	snapshot["window_size"] = [size.x, size.y]
 	snapshot["world_rect"] = [valley.position.x, valley.position.y, valley.size.x, valley.size.y]
 	snapshot["fps"] = Engine.get_frames_per_second()
+	snapshot["frame_intervals"] = frame_times.report()
+	snapshot["renderer"] = RenderingServer.get_current_rendering_method()
+	snapshot["handheld"] = handheld
+	snapshot["draw_calls"] = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	snapshot["render_primitives"] = Performance.get_monitor(
+		Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME
+	)
 	snapshot["graphics"] = valley.graphics
 	snapshot["camera"] = valley.camera_evidence()
 	var camera_position: Vector3 = snapshot["camera"]["position"]

@@ -43,6 +43,10 @@ var effects: Array[Dictionary] = []
 var environment := Environment.new()
 var sunlight := DirectionalLight3D.new()
 var graphics := "high"
+var handheld := false
+var controller_aim := false
+var controller_point := Vector2(-1, -1)
+var aim: Label
 
 
 func _ready() -> void:
@@ -53,7 +57,11 @@ func _ready() -> void:
 	viewport.own_world_3d = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.msaa_3d = Viewport.MSAA_4X
-	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	viewport.screen_space_aa = (
+		Viewport.SCREEN_SPACE_AA_FXAA
+		if RenderingServer.get_current_rendering_method() != "gl_compatibility"
+		else Viewport.SCREEN_SPACE_AA_DISABLED
+	)
 	viewport.audio_listener_enable_3d = false
 	add_child(viewport)
 	var image := TextureRect.new()
@@ -63,6 +71,13 @@ func _ready() -> void:
 	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(image)
 	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	aim = S.label("+", 24, S.WHEAT)
+	aim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	aim.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	aim.size = Vector2(32, 32)
+	add_child(aim)
+	aim.hide()
 	world.name = "Valley"
 	viewport.add_child(world)
 	terrain = Terrain.new()
@@ -101,6 +116,8 @@ func _resize() -> void:
 	var pixels := size * to_screen.get_scale().abs()
 	viewport.size = Vector2i(maxi(2, roundi(pixels.x)), maxi(2, roundi(pixels.y)))
 	_apply_render_scale()
+	if is_instance_valid(aim):
+		aim.position = (size - aim.size) * .5
 
 
 ## Faster graphics caps 3D work at about 1.4 megapixels, so a large HiDPI
@@ -133,7 +150,7 @@ func _lighting() -> void:
 	environment.tonemap_exposure = 1.0
 	environment.tonemap_white = 5.0
 	var renderer := RenderingServer.get_current_rendering_method()
-	environment.ssao_enabled = renderer != "mobile"
+	environment.ssao_enabled = renderer == "forward_plus"
 	environment.ssao_radius = 1.4
 	environment.ssao_intensity = 1.7
 	environment.ssil_enabled = renderer == "forward_plus"
@@ -177,7 +194,7 @@ func set_graphics(preset: String, renderer: String = "") -> void:
 		Viewport.SCALING_3D_MODE_FSR if fast and forward else Viewport.SCALING_3D_MODE_BILINEAR
 	)
 	_apply_render_scale()
-	environment.ssao_enabled = method != "mobile"
+	environment.ssao_enabled = forward
 	environment.ssil_enabled = not fast and forward
 	environment.volumetric_fog_enabled = not fast and forward
 	sunlight.directional_shadow_mode = (
@@ -185,7 +202,49 @@ func set_graphics(preset: String, renderer: String = "") -> void:
 		if fast
 		else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	)
-	sunlight.directional_shadow_max_distance = 140 if fast else 210
+	sunlight.directional_shadow_max_distance = 60 if handheld else 140 if fast else 210
+	environment.glow_enabled = not handheld
+
+
+func set_handheld(enabled: bool) -> void:
+	handheld = enabled
+	# A process-local atlas budget. Never change the device's GPU/CPU clocks.
+	(
+		RenderingServer
+		. directional_shadow_atlas_set_size(
+			(
+				1024
+				if enabled
+				else int(
+					ProjectSettings.get_setting(
+						"rendering/lights_and_shadows/directional_shadow/size", 4096
+					)
+				)
+			),
+			false,
+		)
+	)
+	set_graphics(graphics)
+
+
+func controller_motion(movement: Dictionary, delta: float) -> void:
+	if not camera_input_enabled:
+		return
+	var pan: Vector2 = movement.pan
+	var orbit: Vector2 = movement.orbit
+	if pan != Vector2.ZERO:
+		rig.pan(pan * delta * maxf(2, rig.distance * .38))
+	if orbit != Vector2.ZERO:
+		rig.orbit(orbit * delta * 150)
+	if movement.zoom != 0:
+		rig.zoom(float(movement.zoom) * delta * 4, rig.target)
+	cursor = controller_point if controller_point.x >= 0 else size * .5
+
+
+func controller_activate() -> void:
+	if camera_input_enabled and controller_point.x != 0:
+		cursor = controller_point if controller_point.x >= 0 else size * .5
+		chosen.emit(simulation_position(ground_at(cursor)), MOUSE_BUTTON_LEFT)
 
 
 func set_state(value: Dictionary) -> void:
@@ -282,6 +341,10 @@ func _process(delta: float) -> void:
 		label.position = world_position(village.pos) + Vector3(0, 4.2, 0)
 		label.visible = rig.distance > 23
 		label.pixel_size = clampf(rig.distance * .00046, .014, .085)
+	if controller_aim and camera_input_enabled:
+		cursor = controller_point if controller_point.x >= 0 else size * .5
+		aim.position = cursor - aim.size * .5
+	aim.visible = controller_aim and camera_input_enabled and controller_point.x != 0
 	_update_cursor()
 	_update_effects(delta)
 
@@ -345,6 +408,7 @@ func cancel_camera_input() -> void:
 
 ## The game binding supplies valley-local coordinates after checking HUD occlusion.
 func touch_input(event: InputEvent, at: Vector2) -> bool:
+	controller_aim = false
 	if not camera_input_enabled:
 		cancel_camera_input()
 		return false
@@ -373,6 +437,7 @@ func touch_input(event: InputEvent, at: Vector2) -> bool:
 
 
 func _gui_input(event: InputEvent) -> void:
+	controller_aim = false
 	if not camera_input_enabled:
 		cancel_camera_input()
 		return

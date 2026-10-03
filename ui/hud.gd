@@ -47,6 +47,7 @@ var muted := false
 var reduced_motion := false
 var faster_graphics := false
 var touch_controls := OS.get_name() == "Android"
+var controller_controls := false
 
 
 func _ready() -> void:
@@ -290,9 +291,13 @@ func refresh(
 		"food": "Click to leave food. It costs 1 power. A gift can mean different things."
 	}
 	hint.text = (
-		"Tap: select or give   ·   Drag: orbit   ·   Two fingers: pan and pinch"
-		if touch_controls and mode == "observe"
-		else hints[mode]
+		"Left stick: pan · Right stick: orbit · A: select/give · Select: menu"
+		if controller_controls and mode == "observe"
+		else (
+			"Tap: select or give   ·   Drag: orbit   ·   Two fingers: pan and pinch"
+			if touch_controls and mode == "observe"
+			else hints[mode]
+		)
 	)
 	if selected >= 0 and selected < value.get("people", []).size():
 		_refresh_account(value.people[selected])
@@ -399,6 +404,39 @@ func blocks_world_input(at: Vector2) -> bool:
 	return false
 
 
+func focus_sheet(step: int = 0) -> void:
+	if not sheet_open():
+		return
+	var controls: Array[Control] = []
+	for control in sheet.find_children("*", "Button", true, false):
+		if control.is_visible_in_tree() and not control.disabled:
+			controls.append(control)
+	if controls.is_empty():
+		return
+	var current := get_viewport().gui_get_focus_owner()
+	var index := controls.find(current)
+	if index < 0:
+		controls[0].grab_focus()
+	elif step != 0:
+		controls[posmod(index + step, controls.size())].grab_focus()
+
+
+func controller_world_point(world_rect: Rect2) -> Vector2:
+	# An overlay account must never hide the controller's pick/placement target.
+	var width := world_rect.size.x
+	if inspector.visible and inspector.get_rect().intersects(world_rect):
+		width = clampf(inspector.position.x - world_rect.position.x, 0, width)
+	return Vector2(width * .5, world_rect.size.y * .5)
+
+
+func scroll_controller(amount: float, delta: float) -> void:
+	var source: Control = sheet if sheet_open() else inspector if inspector.visible else null
+	if source == null:
+		return
+	for scroll in source.find_children("*", "ScrollContainer", true, false):
+		scroll.scroll_vertical += roundi(amount * delta * 360)
+
+
 func sheet_open() -> bool:
 	return is_instance_valid(sheet)
 
@@ -450,6 +488,13 @@ func show_help(intro: bool, seed_value: int) -> void:
 		+ "[color=#89c6d0]Try this[/color]\nWhen people approach the shrine, leave food nearby. "
 		+ "Look at a witness. Watch the story travel. "
 		+ "Then restart and help both villages, or do nothing.\n\n"
+		+ "[color=#89c6d0]Controller[/color]\n"
+		+ "Left stick pans. Right stick orbits and tilts. Shoulder buttons zoom.\n"
+		+ "A selects or gives at the crosshair. X chooses Rain. Y chooses Food. B cancels.\n"
+		+ "D-pad left/right selects people; up gives a close view; down shows the valley.\n"
+		+ "Start pauses time or starts the intro. Select opens every other action.\n"
+		+ "In menus, use D-pad and A. Right stick scrolls. B returns to the valley.\n"
+		+ "Hold the right stick button and move the stick to scroll a person's account.\n\n"
 		+ "[color=#89c6d0]Touch controls[/color]\n"
 		+ "Tap a person to select them. Choose Rain or Food, then tap a place to give.\n"
 		+ "Drag one finger to orbit and tilt. Drag two fingers to pan. Pinch to zoom.\n"

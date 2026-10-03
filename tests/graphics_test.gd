@@ -81,7 +81,7 @@ func run() -> void:
 				"%s/%s never enables Forward+-only effects" % [renderer, preset]
 			)
 			check(
-				view.environment.ssao_enabled == (renderer != "mobile"),
+				not view.environment.ssao_enabled,
 				"%s/%s respects SSAO support" % [renderer, preset]
 			)
 	check(

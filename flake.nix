@@ -9,6 +9,18 @@
       # The Android SDK build tools run on the project's x86_64 Linux hosts.
       systems = [ "x86_64-linux" ];
       eachSystem = nixpkgs.lib.genAttrs systems;
+      linuxSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      linuxBuildPkgs = import nixpkgs { system = "x86_64-linux"; };
+      linuxGameFor =
+        system:
+        import ./nix/linux-game.nix {
+          buildPkgs = linuxBuildPkgs;
+          runtimePkgs = import nixpkgs { inherit system; };
+          source = ./.;
+        };
       toolsFor =
         system:
         let
@@ -126,18 +138,23 @@
         };
     in
     {
-      packages = eachSystem (
+      packages = nixpkgs.lib.genAttrs linuxSystems (
         system:
-        let
-          tools = toolsFor system;
-        in
         {
-          default = tools.toolchain;
-          android-toolchain = tools.toolchain;
-          android-templates = tools.templates;
-          android-sdk = tools.sdk;
-          godot = tools.godot;
+          signs-of-rain = linuxGameFor system;
         }
+        // nixpkgs.lib.optionalAttrs (builtins.elem system systems) (
+          let
+            tools = toolsFor system;
+          in
+          {
+            default = tools.toolchain;
+            android-toolchain = tools.toolchain;
+            android-templates = tools.templates;
+            android-sdk = tools.sdk;
+            godot = tools.godot;
+          }
+        )
       );
       devShells = eachSystem (
         system:

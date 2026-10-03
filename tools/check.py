@@ -38,6 +38,8 @@ commands = [
     [GODOT, "--headless", "--path", ".", "--script", "tests/view_interaction_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/picking_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/graphics_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/controller_test.gd"],
+    [GODOT, "--headless", "--path", ".", "--script", "tests/frame_times_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/touch_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/touch_layout_test.gd"],
     [GODOT, "--headless", "--path", ".", "--script", "tests/density_test.gd"],
