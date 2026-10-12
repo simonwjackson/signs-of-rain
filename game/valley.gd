@@ -38,6 +38,11 @@ var dragging := 0
 var drag_travel := 0.0
 var follow_id := -1
 var last_tick := -1
+## How far the clock has run through the current half-second step, from 0 to 1.
+var tick_phase := 1.0
+## Where each person stood before the latest step; people walk from here to their
+## simulated position at a steady pace across the step.
+var step_from: Dictionary = {}
 var clock := 0.0
 var effects: Array[Dictionary] = []
 var environment := Environment.new()
@@ -253,6 +258,8 @@ func set_state(value: Dictionary) -> void:
 
 func reset() -> void:
 	last_tick = -1
+	tick_phase = 1.0
+	step_from.clear()
 	follow_id = -1
 	cancel_camera_input()
 	if is_instance_valid(terrain):
@@ -277,7 +284,12 @@ func _process(delta: float) -> void:
 	clock += delta
 	for person in state.get("people", []):
 		var id: int = person.id
-		var at := world_position(person.pos)
+		var to: Vector2 = person.pos
+		var from: Vector2 = step_from.get(id, to)
+		# Reduced motion and long jumps (restart, replay) show the simulated spot.
+		if effects_static or from.distance_to(to) > 20.0:
+			from = to
+		var at := world_position(from.lerp(to, clampf(tick_phase, 0, 1)))
 		if not people.has(id):
 			var actor := Villager.new(id, int(person.village))
 			world.add_child(actor)
@@ -299,12 +311,12 @@ func _process(delta: float) -> void:
 			actor.add_child(body)
 			pick_shapes[id] = shape
 		var actor: Node3D = people[id]
-		var travel := at - actor.position
-		var moving := travel.length() > .007 and motion
-		actor.position = actor.position.lerp(at, minf(1, delta * 9)) if motion else at
+		var travel := to - from
+		var moving := travel.length() > .05 and motion
+		actor.position = at
 		if moving:
-			var heading := atan2(-travel.x, -travel.z)
-			actor.rotation.y = lerp_angle(actor.rotation.y, heading, minf(1, delta * 7))
+			var heading := atan2(-travel.x, -travel.y)
+			actor.rotation.y = lerp_angle(actor.rotation.y, heading, minf(1, delta * 8))
 		actor.present(person, moving, delta if motion else 0.0)
 		var head: Vector3 = actor.to_local(actor.focus_point())
 		var shape: CollisionShape3D = pick_shapes[id]

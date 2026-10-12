@@ -5,9 +5,13 @@ const MALE = preload("res://assets/characters/male_villager.gltf")
 const FEMALE = preload("res://assets/characters/female_villager.gltf")
 const CLOTH = [Color("a5a892"), Color("8598a2"), Color("b6a381"), Color("9b8678")]
 const HAIR = [Color("493125"), Color("302b27"), Color("87705a"), Color("a39881")]
+## Ground speed of the Walk clip's feet at normal rate, measured from both skeletons.
+const STRIDE_SPEED := 1.25
 
 var person_id: int
 var village: int
+## Walk playback rate, chosen so planted feet move at the person's ground speed.
+var walk_rate := 1.0
 var _model: Node3D
 var _player: AnimationPlayer
 var _skeleton: Skeleton3D
@@ -188,13 +192,14 @@ func present(person: Dictionary, moving: bool, delta: float) -> void:
 				clip = "Fixing_Kneeling"
 	if delta > 0:
 		var speed := position.distance_to(_last_position) / delta
-		_motion_speed = lerpf(_motion_speed, minf(speed, 4), 1 - exp(-delta * 3))
+		_motion_speed = lerpf(_motion_speed, minf(speed, 4), 1 - exp(-delta * 8))
 	_last_position = position
 	if _cue_time > 0:
 		clip = _cue_clip
 		_cue_time = maxf(0, _cue_time - maxf(delta, 0))
 	_play(clip)
-	var cadence := clampf(_motion_speed / .8, .4, 2.6) if clip == "Walk" else 1.0
+	walk_rate = clampf(_motion_speed / (STRIDE_SPEED * _model.scale.x), .35, 2.4)
+	var cadence := walk_rate if clip == "Walk" else 1.0
 	_player.advance(maxf(delta, 0.0) * cadence)
 	# A bucket hangs upright even as the animated hand rotates.
 	_food.global_basis = _model.global_basis

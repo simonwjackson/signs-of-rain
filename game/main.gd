@@ -155,6 +155,9 @@ func _process(delta: float) -> void:
 			elapsed -= TICK_SECONDS
 			if replaying:
 				_apply_replay()
+			# People walk from where this step starts; the copy survives in-place moves.
+			for person in simulation.people:
+				valley.step_from[int(person.id)] = Vector2(person.pos)
 			simulation.step()
 			if replaying:
 				_apply_replay()
@@ -162,6 +165,7 @@ func _process(delta: float) -> void:
 			advanced = true
 	if advanced:
 		_refresh()
+	valley.tick_phase = 1.0 if simulation.ended else elapsed / TICK_SECONDS
 	if controller_active:
 		if hud.sheet_open():
 			if absf(modal_scroll) > Controller.DEADZONE:
